@@ -1,3 +1,7 @@
+/**
+ * $Id$
+**/
+
 $model = new Model(1,2);
 $model->id = 2;
 $model->id2 = 3;
