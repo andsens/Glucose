@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="Glucose" default="phpdoc" basedir=".">
+
+	<property name="docdir" value="${project.basedir}/Documentation" />
+	<property name="testdir" value="${project.basedir}/UnitTests" />
+	
+	<target name="phpdoc">
+		<delete dir="${docdir}" />
+		<phpdoc title="Glucose Framework Documentation"
+			destdir="${docdir}" sourcecode="no"
+			output="HTML:Smarty:PHP" defaultpackagename = "model"
+			undocumentedelements = "true">
+			<fileset dir="Glucose">
+				<include name="*.class.php" />
+			</fileset>
+		</phpdoc>
+	</target>
+	
+	<target name="phpunit"><adhoc><![CDATA[
+		function __autoload($class) {
+		    require_once(str_replace('\\', '/', $class).'.class.php');
+		}
+	  ]]></adhoc>
+		<phpunit>
+			<batchtest>
+				<fileset dir="${testdir}">
+					<include name="ModelTestSuite.php" />
+				</fileset>
+			</batchtest>
+		</phpunit>
+	</target>
+</project>

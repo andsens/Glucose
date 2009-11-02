@@ -1,0 +1,7 @@
+<?php
+$dbAccess = array('hostname'      => 'localhost',
+                  'username'      => 'phpunit',
+                  'password'      => '',
+                  'defaultSchema' => 'model_unit_tests');
+$mysqlExecutable = '/usr/bin/mysql';
+?>
