@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project name="Glucose" default="phpdoc" basedir=".">
-
-	<property name="docdir" value="${project.basedir}/Documentation" />
-	<property name="testdir" value="${project.basedir}/UnitTests" />
+	<taskdef name="mysqli-connect" classname="Phing.ConnectMySQLiTask" />
+	
+	<property file="build.properties" />
 	
 	<target name="phpdoc">
-		<delete dir="${docdir}" />
+		<delete dir="${docs.dir}" />
 		<phpdoc title="Glucose Framework Documentation"
-			destdir="${docdir}" sourcecode="no"
+			destdir="${docs.dir}" sourcecode="no"
 			output="HTML:Smarty:PHP" defaultpackagename = "model"
 			undocumentedelements = "true">
 			<fileset dir="Glucose">
@@ -16,17 +16,48 @@
 		</phpdoc>
 	</target>
 	
-	<target name="phpunit"><adhoc><![CDATA[
-		function __autoload($class) {
-		    require_once(str_replace('\\', '/', $class).'.class.php');
-		}
-	  ]]></adhoc>
+	<target name="phplint">
+		<phplint>
+		  <fileset dir="${src.dir}">
+		    <include name="**/*.class.php"/>
+		  </fileset>
+		</phplint>
+	</target>
+
+	<target name="phpcs">
+		<phpcodesniffer standard="PEAR" showSniffs="true">
+			<formatter outfile="${reports.phpcs.txt}" type="summary"/>
+			<fileset dir="${src.dir}">
+				<include name="**/*.class.php"/>
+			</fileset>
+		</phpcodesniffer>
+	</target>
+
+	<target name="phpunit" depends="autoloader">
+		<pdo url="mysql:host=${mysql.hostname}" src="${tests.sqlscript}"
+			userid="${mysql.username}" password="${mysql.password}" />
+		<mysqli-connect
+			host="${mysql.hostname}" schema="${tests.schema}"
+			user="${mysql.username}" pass="${mysql.password}" />
+		<adhoc>
+			<![CDATA[ Glucose\Model::connect($GLOBALS['mysqli']); ]]>
+		</adhoc>
+		
 		<phpunit>
+			<formatter todir="${reports.phpunit.dir}" outfile="${reports.phpunit.xml}" type="xml" />
 			<batchtest>
-				<fileset dir="${testdir}">
-					<include name="ModelTestSuite.php" />
+				<fileset dir="${tests.dir}">
+					<include name="*/*Test.php" />
 				</fileset>
 			</batchtest>
 		</phpunit>
+		<phpunitreport infile="${reports.phpunit.dir}/${reports.phpunit.xml}"
+			format="frames" todir="${reports.phpunit.dir}"/>
+	</target>
+	
+	<target name="autoloader" description="Initializes the autoloader">
+		<adhoc>
+			<![CDATA[ function __autoload($class) { require_once(str_replace('\\', '/', $class).'.class.php'); } ]]>
+		</adhoc>
 	</target>
 </project>

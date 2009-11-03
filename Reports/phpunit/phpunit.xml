@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="EntityTest" file="/Volumes/Anders/Workspace/Glucose/UnitTests/Framework/EntityTest.php" tests="12" assertions="0" failures="0" errors="12" time="0.013718">
+    <testcase name="testAnonymousIndependence" class="EntityTest" file="/Volumes/Anders/Workspace/Glucose/UnitTests/Framework/EntityTest.php" line="25" assertions="0" time="0.001842">
+      <error type="PHPUnit_Framework_Error_Notice">EntityTest::testAnonymousIndependence
+Undefined index: DummyClass
+
+/Volumes/Anders/Workspace/Glucose/Glucose/Entity.class.php:27
+/Volumes/Anders/Workspace/Glucose/UnitTests/Framework/EntityTest.php:27
+/usr/lib/php/phing.php:37
+</error>
+    </testcase>
+    <testcase name="testIndependenceInSameClass" class="EntityTest" file="/Volumes/Anders/Workspace/Glucose/UnitTests/Framework/EntityTest.php" line="38" assertions="0" time="0.001066">
+      <error type="PHPUnit_Framework_Error_Notice">EntityTest::testIndependenceInSameClass
+Undefined index: DummyClass
+
+/Volumes/Anders/Workspace/Glucose/Glucose/Entity.class.php:27
+/Volumes/Anders/Workspace/Glucose/UnitTests/Framework/EntityTest.php:40
+/usr/lib/php/phing.php:37
+</error>
+    </testcase>
+    <testcase name="testIndependenceInDifferentClasses" class="EntityTest" file="/Volumes/Anders/Workspace/Glucose/UnitTests/Framework/EntityTest.php" line="48" assertions="0" time="0.001084">
+      <error type="PHPUnit_Framework_Error_Notice">EntityTest::testIndependenceInDifferentClasses
+Undefined index: Class1
+
+/Volumes/Anders/Workspace/Glucose/Glucose/Entity.class.php:27
+/Volumes/Anders/Workspace/Glucose/UnitTests/Framework/EntityTest.php:49
+/usr/lib/php/phing.php:37
+</error>
+    </testcase>
+    <testcase name="testEntityEquality" class="EntityTest" file="/Volumes/Anders/Workspace/Glucose/UnitTests/Framework/EntityTest.php" line="57" assertions="0" time="0.001054">
+      <error type="PHPUnit_Framework_Error_Notice">EntityTest::testEntityEquality
+Undefined index: DummyClass
+
+/Volumes/Anders/Workspace/Glucose/Glucose/Entity.class.php:27
+/Volumes/Anders/Workspace/Glucose/UnitTests/Framework/EntityTest.php:60
+/usr/lib/php/phing.php:37
+</error>
+    </testcase>
+    <testcase name="testConcurrency" class="EntityTest" file="/Volumes/Anders/Workspace/Glucose/UnitTests/Framework/EntityTest.php" line="65" assertions="0" time="0.001103">
+      <error type="PHPUnit_Framework_Error_Notice">EntityTest::testConcurrency
+Undefined index: DummyClass
+
+/Volumes/Anders/Workspace/Glucose/Glucose/Entity.class.php:27
+/Volumes/Anders/Workspace/Glucose/UnitTests/Framework/EntityTest.php:68
+/usr/lib/php/phing.php:37
+</error>
+    </testcase>
+    <testcase name="testIdentifierUpdate" class="EntityTest" file="/Volumes/Anders/Workspace/Glucose/UnitTests/Framework/EntityTest.php" line="78" assertions="0" time="0.001085">
+      <error type="PHPUnit_Framework_Error_Notice">EntityTest::testIdentifierUpdate
+Undefined index: DummyClass
+
+/Volumes/Anders/Workspace/Glucose/Glucose/Entity.class.php:27
+/Volumes/Anders/Workspace/Glucose/UnitTests/Framework/EntityTest.php:82
+/usr/lib/php/phing.php:37
+</error>
+    </testcase>
+    <testcase name="testCollisionDetection" class="EntityTest" file="/Volumes/Anders/Workspace/Glucose/UnitTests/Framework/EntityTest.php" line="94" assertions="0" time="0.001064">
+      <error type="PHPUnit_Framework_Error_Notice">EntityTest::testCollisionDetection
+Undefined index: DummyClass
+
+/Volumes/Anders/Workspace/Glucose/Glucose/Entity.class.php:27
+/Volumes/Anders/Workspace/Glucose/UnitTests/Framework/EntityTest.php:98
+/usr/lib/php/phing.php:37
+</error>
+    </testcase>
+    <testcase name="testAnonymousToIdentifiedConversion" class="EntityTest" file="/Volumes/Anders/Workspace/Glucose/UnitTests/Framework/EntityTest.php" line="105" assertions="0" time="0.001065">
+      <error type="PHPUnit_Framework_Error_Notice">EntityTest::testAnonymousToIdentifiedConversion
+Undefined index: DummyClass
+
+/Volumes/Anders/Workspace/Glucose/Glucose/Entity.class.php:27
+/Volumes/Anders/Workspace/Glucose/UnitTests/Framework/EntityTest.php:107
+/usr/lib/php/phing.php:37
+</error>
+    </testcase>
+    <testcase name="testInvalidIdentifer1" class="EntityTest" file="/Volumes/Anders/Workspace/Glucose/UnitTests/Framework/EntityTest.php" line="115" assertions="0" time="0.001073">
+      <error type="PHPUnit_Framework_Error_Notice">EntityTest::testInvalidIdentifer1
+Undefined index: DummyClass
+
+/Volumes/Anders/Workspace/Glucose/Glucose/Entity.class.php:27
+/Volumes/Anders/Workspace/Glucose/UnitTests/Framework/EntityTest.php:118
+/usr/lib/php/phing.php:37
+</error>
+    </testcase>
+    <testcase name="testInvalidIdentifer2" class="EntityTest" file="/Volumes/Anders/Workspace/Glucose/UnitTests/Framework/EntityTest.php" line="125" assertions="0" time="0.001065">
+      <error type="PHPUnit_Framework_Error_Notice">EntityTest::testInvalidIdentifer2
+Undefined index: DummyClass
+
+/Volumes/Anders/Workspace/Glucose/Glucose/Entity.class.php:27
+/Volumes/Anders/Workspace/Glucose/UnitTests/Framework/EntityTest.php:128
+/usr/lib/php/phing.php:37
+</error>
+    </testcase>
+    <testcase name="testUpdateToInvalidIdentifer" class="EntityTest" file="/Volumes/Anders/Workspace/Glucose/UnitTests/Framework/EntityTest.php" line="135" assertions="0" time="0.001131">
+      <error type="PHPUnit_Framework_Error_Notice">EntityTest::testUpdateToInvalidIdentifer
+Undefined index: DummyClass
+
+/Volumes/Anders/Workspace/Glucose/Glucose/Entity.class.php:27
+/Volumes/Anders/Workspace/Glucose/UnitTests/Framework/EntityTest.php:138
+/usr/lib/php/phing.php:37
+</error>
+    </testcase>
+    <testcase name="testSuccessfulDestruction" class="EntityTest" file="/Volumes/Anders/Workspace/Glucose/UnitTests/Framework/EntityTest.php" line="148" assertions="0" time="0.001086">
+      <error type="PHPUnit_Framework_Error_Notice">EntityTest::testSuccessfulDestruction
+Undefined index: DummyClass
+
+/Volumes/Anders/Workspace/Glucose/Glucose/Entity.class.php:27
+/Volumes/Anders/Workspace/Glucose/UnitTests/Framework/EntityTest.php:151
+/usr/lib/php/phing.php:37
+</error>
+    </testcase>
+  </testsuite>
+  <testsuite name="CityTest" file="/Volumes/Anders/Workspace/Glucose/UnitTests/Models/CityTest.php" tests="2" assertions="0" failures="0" errors="2" time="0.004289">
+    <testcase name="testObjectCreation" class="CityTest" file="/Volumes/Anders/Workspace/Glucose/UnitTests/Models/CityTest.php" line="23" assertions="0" time="0.003126">
+      <error type="Glucose\Exceptions\MySQL\MySQLConnectionException">CityTest::testObjectCreation
+Glucose\Exceptions\MySQL\MySQLConnectionException: No database connection has been defined
+
+/Volumes/Anders/Workspace/Glucose/Glucose/Table.class.php:86
+/Volumes/Anders/Workspace/Glucose/Glucose/Model.class.php:86
+/Volumes/Anders/Workspace/Glucose/Glucose/Model.class.php:65
+/Volumes/Anders/Workspace/Glucose/UnitTests/Models/CityTest.php:24
+/usr/lib/php/phing.php:37
+</error>
+    </testcase>
+    <testcase name="testObjectUpdate" class="CityTest" file="/Volumes/Anders/Workspace/Glucose/UnitTests/Models/CityTest.php" line="37" assertions="0" time="0.001163">
+      <error type="Glucose\Exceptions\MySQL\MySQLConnectionException">CityTest::testObjectUpdate
+Glucose\Exceptions\MySQL\MySQLConnectionException: No database connection has been defined
+
+/Volumes/Anders/Workspace/Glucose/Glucose/Table.class.php:86
+/Volumes/Anders/Workspace/Glucose/Glucose/Model.class.php:86
+/Volumes/Anders/Workspace/Glucose/Glucose/Model.class.php:65
+/Volumes/Anders/Workspace/Glucose/UnitTests/Models/CityTest.php:38
+/usr/lib/php/phing.php:37
+</error>
+    </testcase>
+  </testsuite>
+  <testsuite name="CountryTest" file="/Volumes/Anders/Workspace/Glucose/UnitTests/Models/CountryTest.php" tests="5" assertions="0" failures="0" errors="4" time="0.005279">
+    <testcase name="testObjectCreationFailOnNull" class="CountryTest" file="/Volumes/Anders/Workspace/Glucose/UnitTests/Models/CountryTest.php" line="28" assertions="0" time="0.001205">
+      <error type="Glucose\Exceptions\MySQL\MySQLConnectionException">CountryTest::testObjectCreationFailOnNull
+Glucose\Exceptions\MySQL\MySQLConnectionException: No database connection has been defined
+
+/Volumes/Anders/Workspace/Glucose/Glucose/Table.class.php:86
+/Volumes/Anders/Workspace/Glucose/Glucose/Model.class.php:86
+/Volumes/Anders/Workspace/Glucose/Glucose/Model.class.php:65
+/Volumes/Anders/Workspace/Glucose/UnitTests/Models/CountryTest.php:30
+/usr/lib/php/phing.php:37
+</error>
+    </testcase>
+    <testcase name="testObjectCreation" class="CountryTest" file="/Volumes/Anders/Workspace/Glucose/UnitTests/Models/CountryTest.php" line="34" assertions="0" time="0.001077">
+      <error type="Glucose\Exceptions\MySQL\MySQLConnectionException">CountryTest::testObjectCreation
+Glucose\Exceptions\MySQL\MySQLConnectionException: No database connection has been defined
+
+/Volumes/Anders/Workspace/Glucose/Glucose/Table.class.php:86
+/Volumes/Anders/Workspace/Glucose/Glucose/Model.class.php:86
+/Volumes/Anders/Workspace/Glucose/Glucose/Model.class.php:65
+/Volumes/Anders/Workspace/Glucose/UnitTests/Models/CountryTest.php:35
+/usr/lib/php/phing.php:37
+</error>
+    </testcase>
+    <testcase name="testObjectInitFailOnUndefined" class="CountryTest" file="/Volumes/Anders/Workspace/Glucose/UnitTests/Models/CountryTest.php" line="44" assertions="0" time="0.001108">
+      <error type="Glucose\Exceptions\MySQL\MySQLConnectionException">CountryTest::testObjectInitFailOnUndefined
+Glucose\Exceptions\MySQL\MySQLConnectionException: No database connection has been defined
+
+/Volumes/Anders/Workspace/Glucose/Glucose/Table.class.php:86
+/Volumes/Anders/Workspace/Glucose/Glucose/Model.class.php:86
+/Volumes/Anders/Workspace/Glucose/Glucose/Model.class.php:65
+/Volumes/Anders/Workspace/Glucose/UnitTests/Models/CountryTest.php:46
+/usr/lib/php/phing.php:37
+</error>
+    </testcase>
+    <testcase name="testPrimaryKeyChange" class="CountryTest" file="/Volumes/Anders/Workspace/Glucose/UnitTests/Models/CountryTest.php" line="50" assertions="0" time="0.001093">
+      <error type="Glucose\Exceptions\MySQL\MySQLConnectionException">CountryTest::testPrimaryKeyChange
+Glucose\Exceptions\MySQL\MySQLConnectionException: No database connection has been defined
+
+/Volumes/Anders/Workspace/Glucose/Glucose/Table.class.php:86
+/Volumes/Anders/Workspace/Glucose/Glucose/Model.class.php:86
+/Volumes/Anders/Workspace/Glucose/Glucose/Model.class.php:65
+/Volumes/Anders/Workspace/Glucose/UnitTests/Models/CountryTest.php:51
+/usr/lib/php/phing.php:37
+</error>
+    </testcase>
+    <testcase name="testEquality" class="CountryTest" file="/Volumes/Anders/Workspace/Glucose/UnitTests/Models/CountryTest.php" line="62" assertions="0" time="0.000796"/>
+  </testsuite>
+  <testsuite name="CustomerTest" file="/Volumes/Anders/Workspace/Glucose/UnitTests/Models/CustomerTest.php" tests="4" assertions="0" failures="0" errors="4" time="0.004959">
+    <testcase name="testConcurrency" class="CustomerTest" file="/Volumes/Anders/Workspace/Glucose/UnitTests/Models/CustomerTest.php" line="27" assertions="0" time="0.001734">
+      <error type="Glucose\Exceptions\MySQL\MySQLConnectionException">CustomerTest::testConcurrency
+Glucose\Exceptions\MySQL\MySQLConnectionException: No database connection has been defined
+
+/Volumes/Anders/Workspace/Glucose/Glucose/Table.class.php:86
+/Volumes/Anders/Workspace/Glucose/Glucose/Model.class.php:86
+/Volumes/Anders/Workspace/Glucose/Glucose/Model.class.php:65
+/Volumes/Anders/Workspace/Glucose/UnitTests/Models/CustomerTest.php:28
+/usr/lib/php/phing.php:37
+</error>
+    </testcase>
+    <testcase name="testConcurrency2" class="CustomerTest" file="/Volumes/Anders/Workspace/Glucose/UnitTests/Models/CustomerTest.php" line="41" assertions="0" time="0.001068">
+      <error type="Glucose\Exceptions\MySQL\MySQLConnectionException">CustomerTest::testConcurrency2
+Glucose\Exceptions\MySQL\MySQLConnectionException: No database connection has been defined
+
+/Volumes/Anders/Workspace/Glucose/Glucose/Table.class.php:86
+/Volumes/Anders/Workspace/Glucose/Glucose/Model.class.php:86
+/Volumes/Anders/Workspace/Glucose/Glucose/Model.class.php:65
+/Volumes/Anders/Workspace/Glucose/UnitTests/Models/CustomerTest.php:42
+/usr/lib/php/phing.php:37
+</error>
+    </testcase>
+    <testcase name="testTripleConcurrency" class="CustomerTest" file="/Volumes/Anders/Workspace/Glucose/UnitTests/Models/CustomerTest.php" line="56" assertions="0" time="0.001068">
+      <error type="Glucose\Exceptions\MySQL\MySQLConnectionException">CustomerTest::testTripleConcurrency
+Glucose\Exceptions\MySQL\MySQLConnectionException: No database connection has been defined
+
+/Volumes/Anders/Workspace/Glucose/Glucose/Table.class.php:86
+/Volumes/Anders/Workspace/Glucose/Glucose/Model.class.php:86
+/Volumes/Anders/Workspace/Glucose/Glucose/Model.class.php:65
+/Volumes/Anders/Workspace/Glucose/UnitTests/Models/CustomerTest.php:57
+/usr/lib/php/phing.php:37
+</error>
+    </testcase>
+    <testcase name="testDeletion" class="CustomerTest" file="/Volumes/Anders/Workspace/Glucose/UnitTests/Models/CustomerTest.php" line="82" assertions="0" time="0.001089">
+      <error type="Glucose\Exceptions\MySQL\MySQLConnectionException">CustomerTest::testDeletion
+Glucose\Exceptions\MySQL\MySQLConnectionException: No database connection has been defined
+
+/Volumes/Anders/Workspace/Glucose/Glucose/Table.class.php:86
+/Volumes/Anders/Workspace/Glucose/Glucose/Model.class.php:86
+/Volumes/Anders/Workspace/Glucose/Glucose/Model.class.php:65
+/Volumes/Anders/Workspace/Glucose/UnitTests/Models/CustomerTest.php:83
+/usr/lib/php/phing.php:37
+</error>
+    </testcase>
+  </testsuite>
+</testsuites>

@@ -22,7 +22,7 @@ class CountryTest extends PHPUnit_Framework_TestCase
 	 * @access protected
 	 */
 	protected function setUp() {
-		ConcreteModelsTestSuite::$mysqli->query('START TRANSACTION;');
+		$GLOBALS['mysqli']->query('START TRANSACTION;');
 	}
 
 	public function testObjectCreationFailOnNull() {
@@ -70,7 +70,7 @@ class CountryTest extends PHPUnit_Framework_TestCase
 	 * @access protected
 	 */
 	protected function tearDown() {
-		ConcreteModelsTestSuite::$mysqli->query('ROLLBACK;');
+		$GLOBALS['mysqli']->query('ROLLBACK;');
 	}
 }
 ?>

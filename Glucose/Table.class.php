@@ -83,12 +83,12 @@ class Table {
 	 */
 	public function __construct($tableName) {
 		if(!isset(self::$mysqli))
-			throw new MySQLConnectionException('No database connection has been defined');
+			throw new Exceptions\MySQL\MySQLConnectionException('No database connection has been defined');
 		$dbNameResult = self::$mysqli->query('SELECT DATABASE();');
 		list($databaseName) = $dbNameResult->fetch_array();
 		$dbNameResult->free();
 		if($databaseName == null)
-			throw new TableException('You have not selected any database!');
+			throw new E\TableException('You have not selected any database!');
 		
 		$this->databaseName = $databaseName;
 		$this->tableName = $tableName;
