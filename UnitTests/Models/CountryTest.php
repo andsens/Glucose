@@ -1,7 +1,6 @@
 <?php
 require_once 'PHPUnit/Framework.php';
 
-require_once 'ConcreteModelsTestSuite.php';
 require_once 'Country.class.php';
 /**
  * Test class for Country.

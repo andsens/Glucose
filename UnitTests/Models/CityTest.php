@@ -1,7 +1,6 @@
 <?php
 require_once 'PHPUnit/Framework.php';
 
-require_once 'ConcreteModelsTestSuite.php';
 require_once 'City.class.php';
 /**
  * Test class for City.

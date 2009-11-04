@@ -1,7 +1,6 @@
 <?php
 require_once 'PHPUnit/Framework.php';
 
-require_once 'ConcreteModelsTestSuite.php';
 require_once 'Customer.class.php';
 /**
  * Test class for Customer.
