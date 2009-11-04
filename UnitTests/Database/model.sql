@@ -2,7 +2,7 @@ SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0;
 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='TRADITIONAL';
 
-CREATE SCHEMA IF NOT EXISTS `model_unit_tests` DEFAULT CHARACTER SET utf8 ;
+CREATE SCHEMA IF NOT EXISTS `model_unit_tests` ;
 USE `model_unit_tests`;
 
 -- -----------------------------------------------------
@@ -33,21 +33,21 @@ CREATE  TABLE IF NOT EXISTS `model_unit_tests`.`cities` (
   CONSTRAINT `FK_cities__country`
     FOREIGN KEY (`country` )
     REFERENCES `model_unit_tests`.`countries` (`id` )
-    ON DELETE CASCADE
-    ON UPDATE CASCADE)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `model_unit_tests`.`customers`
+-- Table `model_unit_tests`.`person`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `model_unit_tests`.`customers` ;
+DROP TABLE IF EXISTS `model_unit_tests`.`person` ;
 
-CREATE  TABLE IF NOT EXISTS `model_unit_tests`.`customers` (
+CREATE  TABLE IF NOT EXISTS `model_unit_tests`.`person` (
   `id` INT NOT NULL AUTO_INCREMENT ,
   `first_name` VARCHAR(255) NOT NULL ,
   `last_name` VARCHAR(255) NOT NULL ,
-  `email` VARCHAR(255) NOT NULL ,
+  `email` VARCHAR(255) NULL ,
   `address` VARCHAR(255) NOT NULL ,
   `city` INT NOT NULL ,
   PRIMARY KEY (`id`) ,
@@ -61,6 +61,10 @@ CREATE  TABLE IF NOT EXISTS `model_unit_tests`.`customers` (
 ENGINE = InnoDB;
 
 
+
+SET SQL_MODE=@OLD_SQL_MODE;
+SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
+SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
 
 -- -----------------------------------------------------
 -- Data for table `model_unit_tests`.`countries`
@@ -89,14 +93,10 @@ INSERT INTO `cities` (`id`, `country`, `name`, `postal_code`) VALUES (3, 5, 'Hel
 COMMIT;
 
 -- -----------------------------------------------------
--- Data for table `model_unit_tests`.`customers`
+-- Data for table `model_unit_tests`.`person`
 -- -----------------------------------------------------
 SET AUTOCOMMIT=0;
 USE `model_unit_tests`;
-INSERT INTO `customers` (`id`, `first_name`, `last_name`, `email`, `address`, `city`) VALUES (1, 'Anders', 'Ingemann', 'anders@ingemann.de', 'Vej 13', 1);
+INSERT INTO `person` (`id`, `first_name`, `last_name`, `email`, `address`, `city`) VALUES (1, 'Anders', 'Ingemann', 'anders@ingemann.de', 'Vej 13', 1);
 
 COMMIT;
-
-SET SQL_MODE=@OLD_SQL_MODE;
-SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
-SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
