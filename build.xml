@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project name="Glucose" default="phpdoc" basedir=".">
 	<taskdef name="mysqli-connect" classname="Phing.ConnectMySQLiTask" />
+	<taskdef name="countlines" classname="Phing.CountLinesTask" />
 	
 	<property file="build.properties" />
+	
+	<target name="eclipse">
+		<phingcall target="phpunit" />
+	</target>
 	
 	<target name="phpdoc">
 		<delete dir="${docs.dir}" />
@@ -14,6 +19,10 @@
 				<include name="*.class.php" />
 			</fileset>
 		</phpdoc>
+	</target>
+	
+	<target name="countlines">
+		<countlines dir="${project.basedir}" extensions=".php" />
 	</target>
 	
 	<target name="phplint">
