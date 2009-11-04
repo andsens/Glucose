@@ -8,7 +8,7 @@
  * @package Model
  */
 namespace Glucose;
-use Exceptions\User as E;
+use \Glucose\Exceptions\User as E;
 abstract class Model {
 	/**
 	 * Associativ array of tables that have been initialized
@@ -74,6 +74,7 @@ abstract class Model {
 		} else {
 			$this->entity = new Entity($this->className);
 		}
+		$this->entity->instanceCount++;
 	}
 	
 	/**

@@ -13,7 +13,7 @@
  * @property-read array $uniqueConstraints {@link Constraint constraint} specifying the {@link UniqueKeyConstraint unqiue constraints} of the table
  */
 namespace Glucose;
-use Exceptions\Table as E;
+use \Glucose\Exceptions\Table as E;
 class Table {
 
 	/**
