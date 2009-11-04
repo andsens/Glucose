@@ -5,7 +5,7 @@
  * In order to take advantage of this framewrok, this class needs to be extended
  * with classes matching the names of database tables.
  * @author andsens
- * @package Model
+ * @package glucose
  */
 namespace Glucose;
 use \Glucose\Exceptions\User as E;

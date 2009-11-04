@@ -5,8 +5,7 @@
  * This is the worker class of the framework.
  * It is the only class, that should communicate with the database.
  * @author andsens
- * @package model
- * @subpackage model.table
+ * @package glucose
  *
  * @property-read array $columns Indexed array of all {@link Column columns} in the table, ordered by how they appear in the table
  * @property-read PrimaryKeyConstraint $primaryKeyConstraint {@link Constraint constraint} specifying the {@link PrimaryKeyConstraint primary key constraint} of the table

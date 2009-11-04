@@ -3,8 +3,7 @@
  * Corresponds to a column in a table.
  * This class holds information about a specific column in a table.
  * @author andsens
- * @package model
- * @subpackage model.table
+ * @package glucose
  *
  * @property-read string $name Column name
  * @property-read string $type MySQL type of the column

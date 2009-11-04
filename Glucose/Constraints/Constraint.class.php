@@ -4,8 +4,8 @@
  * This class is abstract and is useless in itself.
  * It does however provide children of this class with various datastructures.
  * @author andsens
- * @package model
- * @subpackage model.table
+ * @package glucose
+ * @subpackage glucose.constraints
  *
  * @property-read array $columns Indexed array of {@link Column columns} which are part of this constraint
  * @property-read string $statementTypes Concatenated string of statement types this constraint consists of

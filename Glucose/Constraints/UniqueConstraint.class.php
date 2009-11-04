@@ -2,8 +2,8 @@
 /**
  * This {@link Constraint constraint} specifies a set of unique {@link Column columns} in a {@link Table table}.
  * @author andsens
- * @package model
- * @subpackage model.table
+ * @package glucose
+ * @subpackage glucose.constraints
  *
  */
 namespace Glucose\Constraints;

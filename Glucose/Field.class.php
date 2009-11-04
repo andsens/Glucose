@@ -2,7 +2,7 @@
 /**
  * Holds information about a field in a dataset.
  * @author andsens
- * @package model
+ * @package glucose
  *
  * @property-read Column $column {@link Column Column} this field is a part of
  * @property-read mixed $value Value of the field

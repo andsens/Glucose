@@ -1,4 +1,10 @@
 <?php
+/**
+ *
+ * @author andsens
+ * @package glucose
+ *
+ */
 namespace Glucose;
 use \Glucose\Exceptions\Entity as E;
 class Entity {
