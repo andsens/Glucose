@@ -69,10 +69,10 @@ class Entity {
 		return self::join($className, $identifier, $constraint, self::$dbEntities);
 	}
 	
-	private static function join($className, array $identifier, Constraints\UniqueConstraint $constraint, array $entities) {
+	private static function join($className, array $identifier, Constraints\UniqueConstraint $constraint, array &$entities) {
 		if(in_array(null, $identifier, true))
 			throw new E\InvalidIdentifierException('When joining the identifier may not contain null');
-		$hash = $this->hashIdentifier($identifier);
+		$hash = self::hashIdentifier($identifier);
 		if(array_key_exists($hash, $entities[$className][$constraint->name]))
 			return $entities[$className][$constraint->name][$hash];
 		else
@@ -88,8 +88,13 @@ class Entity {
 	}
 	
 	private function updateIdentifiers($database) {
-		$hashesArray = $database?$this->dbHashes:$this->modelHashes;
-		$entities = $database?self::$dbEntities[$this->className]:self::$modelEntities[$this->className];
+		if($database) {
+			$hashesArray = &$this->dbHashes;
+			$entities = &self::$dbEntities[$this->className];
+		} else {
+			$hashesArray = &$this->modelHashes;
+			$entities = &self::$modelEntities[$this->className];
+		}
 		$newHashes = array();
 		foreach(self::$uniqueConstraints[$this->className] as $constraint) {
 			$hash = $this->hashConstraint($constraint, $database);
@@ -104,8 +109,9 @@ class Entity {
 			$newHashes[$constraint->name] = $hash;
 		}
 		foreach($newHashes as $constraintName => $hash) {
-			if($hash != $hashesArray[$constraintName]) {
+			if($hashesArray[$constraintName] !== null)
 				unset($entities[$constraintName][$hashesArray[$constraintName]]);
+			if($hash != $hashesArray[$constraintName]) {
 				if($hash !== null) {
 					$entities[$constraintName][$hash] = $this;
 					$hashesArray[$constraintName] = $hash;
@@ -118,17 +124,17 @@ class Entity {
 	
 	private function hashConstraint(Constraints\UniqueConstraint $constraint, $database) {
 		$fieldValue = $database?'dbValue':'value';
-		$compoundHash = '';
+		$identifier = array();
 		foreach($constraint->columns as $column) {
 			$value = $this->fields[$column->name]->{$fieldValue};
 			if($value === null)
 				return null;
-			$compoundHash .= sha1($value);
+			$identifier[] = $value;
 		}
-		return sha1($compoundHash);
+		return self::hashIdentifier($identifier);
 	}
 	
-	private function hashIdentifier(array $identifier) {
+	private static function hashIdentifier(array $identifier) {
 		$compoundHash = '';
 		foreach($identifier as $value)
 			$compoundHash .= sha1($value);

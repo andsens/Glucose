@@ -39,11 +39,11 @@ ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `model_unit_tests`.`person`
+-- Table `model_unit_tests`.`people`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `model_unit_tests`.`person` ;
+DROP TABLE IF EXISTS `model_unit_tests`.`people` ;
 
-CREATE  TABLE IF NOT EXISTS `model_unit_tests`.`person` (
+CREATE  TABLE IF NOT EXISTS `model_unit_tests`.`people` (
   `id` INT NOT NULL AUTO_INCREMENT ,
   `first_name` VARCHAR(255) NOT NULL ,
   `last_name` VARCHAR(255) NOT NULL ,
@@ -93,10 +93,10 @@ INSERT INTO `cities` (`id`, `country`, `name`, `postal_code`) VALUES (3, 5, 'Hel
 COMMIT;
 
 -- -----------------------------------------------------
--- Data for table `model_unit_tests`.`person`
+-- Data for table `model_unit_tests`.`people`
 -- -----------------------------------------------------
 SET AUTOCOMMIT=0;
 USE `model_unit_tests`;
-INSERT INTO `person` (`id`, `first_name`, `last_name`, `email`, `address`, `city`) VALUES (1, 'Anders', 'Ingemann', 'anders@ingemann.de', 'Vej 13', 1);
+INSERT INTO `people` (`id`, `first_name`, `last_name`, `email`, `address`, `city`) VALUES (1, 'Anders', 'Ingemann', 'anders@ingemann.de', 'Vej 13', 1);
 
 COMMIT;

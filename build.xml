@@ -7,6 +7,7 @@
 	
 	<target name="eclipse">
 		<phingcall target="phpunit" />
+		<phingcall target="coverage" />
 	</target>
 	
 	<target name="phpdoc">
@@ -41,32 +42,10 @@
 			</fileset>
 		</phpcodesniffer>
 	</target>
-
+	
 	<target name="phpunit" depends="autoloader">
 		<delete dir="${reports.phpunit.dir}" />
 		<mkdir dir="${reports.phpunit.dir}" />
-		<pdo url="mysql:host=${mysql.hostname}" src="${tests.sqlscript}"
-			userid="${mysql.username}" password="${mysql.password}" />
-		<mysqli-connect
-			host="${mysql.hostname}" schema="${tests.schema}"
-			user="${mysql.username}" pass="${mysql.password}" />
-		<adhoc>
-			<![CDATA[ Glucose\Model::connect($GLOBALS['mysqli']); ]]>
-		</adhoc>
-		
-		<phpunit>
-			<formatter todir="${reports.phpunit.dir}" outfile="${reports.phpunit.xml}" type="xml" />
-			<batchtest>
-				<fileset dir="${tests.dir}">
-					<include name="*/*Test.php" />
-				</fileset>
-			</batchtest>
-		</phpunit>
-		<phpunitreport infile="${reports.phpunit.dir}/${reports.phpunit.xml}"
-			format="frames" todir="${reports.phpunit.dir}"/>
-	</target>
-	
-	<target name="coverage" depends="autoloader">
 		<delete dir="${reports.coverage.dir}" />
 		<mkdir dir="${reports.coverage.dir}" />
 		<pdo url="mysql:host=${mysql.hostname}" src="${tests.sqlscript}"
@@ -83,12 +62,15 @@
 			</fileset>
 		</coverage-setup>
 		<phpunit codecoverage="true">
+			<formatter todir="${reports.phpunit.dir}" outfile="${reports.phpunit.xml}" type="xml" />
 			<batchtest>
-			<fileset dir="${tests.dir}">
-				<include name="*/*Test.php"/>
-			</fileset>
+				<fileset dir="${tests.dir}">
+					<include name="Components/*Test.php"/>
+				</fileset>
 			</batchtest>
 		</phpunit>
+		<phpunitreport infile="${reports.phpunit.dir}/${reports.phpunit.xml}"
+			format="frames" todir="${reports.phpunit.dir}" styledir="${reports.phpunit.stylesdir}"/>
 		<coverage-report outfile="${reports.coverage.dir}/${reports.coverage.xml}">
 			<report todir="${reports.coverage.dir}" styledir="${reports.coverage.stylesdir}"/>
 		</coverage-report>
@@ -96,7 +78,7 @@
 	
 	<target name="autoloader" description="Initializes the autoloader">
 		<adhoc>
-			<![CDATA[ function __autoload($class) { require_once(str_replace('\\', '/', $class).'.class.php'); } ]]>
+			<![CDATA[ require_once('Glucose/autoloader.inc.php'); ]]>
 		</adhoc>
 	</target>
 </project>
