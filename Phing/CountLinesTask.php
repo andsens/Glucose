@@ -30,7 +30,7 @@ class CountLinesTask extends Task {
 	
 	private function countlines($path) {
 		$matches;
-		$noMatches = preg_match_all('/(\r\n|\R)/', file_get_contents($path), $matches);
+		$noMatches = preg_match_all('/(\r\n)/', file_get_contents($path), $matches);
 		if($noMatches === false)
 			return 0;
 		else

@@ -36,17 +36,13 @@ abstract class Model {
 	 */
 	private $entity;
 	
-	private $className;
-	
 	/**
 	 * Given a mysqli connection, the model connects to a database.
 	 * @param mysqli $mysqli
 	 */
 	public static final function connect(\mysqli $mysqli) {
 		if(!isset(self::$inflector))
-			Model::$inflector = new Inflector();
-		if(!isset(self::$tables))
-			self::$tables = array();
+			self::$inflector = new Inflector();
 		Table::connect($mysqli);
 	}
 	
@@ -60,21 +56,20 @@ abstract class Model {
 	 *
 	 * @param mixed $primaryKeys Set of primary key values depending on the tables definition, it varies in size.
 	 */
-	public final function __construct() {
-		$this->className = get_class($this);
+	public function __construct() {
 		$this->initializeModel();
-		$this->table = self::$tables[$this->className];
+		$className = get_class($this);
+		$this->table = self::$tables[$className];
 		$arguments = func_get_args();
 		if(count($arguments) > 0) {
 			if(count($this->table->primaryKeyConstraint->columns) != count($arguments))
 				throw new E\ConstructorArgumentException('Wrong argument count!');
 			if(in_array(null, $arguments, true))
 				throw new E\ConstructorArgumentException('Illegal argument [null]!');
-			$this->entity = Entity::join($this->className, $arguments, $this->table->primaryKeyConstraint);
+			$this->entity = $this->table->getEntity($arguments, $this->table->primaryKeyConstraint);
 		} else {
-			$this->entity = new Entity($this->className);
+			$this->entity = new Entity($this->table->columns);
 		}
-		$this->entity->instanceCount++;
 	}
 	
 	/**
@@ -82,11 +77,10 @@ abstract class Model {
 	 * The table schema depends on the currently selected database.
 	 */
 	private final function initializeModel() {
-		if(!array_key_exists($this->className, self::$tables)) {
-			$tableName = Model::$inflector->tableize($this->className);
-			$table = new Table($tableName);
-			self::$tables[$this->className] = $table;
-			Entity::initialize($this->className, $table->columns, $table->uniqueConstraints);
+		$className = get_class($this);
+		if(!array_key_exists($className, self::$tables)) {
+			$table = new Table(Model::$inflector->tableize($className));
+			self::$tables[$className] = $table;
 		}
 	}
 	
@@ -138,21 +132,15 @@ abstract class Model {
 	 * @todo Check for PK defined, with num affected rows
 	 */
 	private final function updateDB() {
-		$updateValues = array();
-		foreach($this->entity->fields as $field)
-			if($field->updateDB)
-				$updateValues[$field->column->name] = $field->value;
-		if(count($updateValues) > 0) {
-			try {
-				$this->table->update($updateValues, $this->getDatabasePrimaryKeyValues());
-				foreach($this->entity->fields as $field)
-					$field->dbUpdated();
-				$this->entity->updateIdentifiers();
-				$this->entity->existsInDB = true;
-			} catch(NoAffectedRowException $exception) {
-				throw new E\UndefinedPrimaryKeyException(
-					'The primary key you specified is not represented in the database or the row already had the same values as the new values.');
-			}
+		try {
+			$this->table->update($this>entity);
+			foreach($this->entity->fields as $field)
+				$field->dbUpdated();
+			$this->entity->updateIdentifiers();
+			$this->entity->existsInDB = true;
+		} catch(NoAffectedRowException $exception) {
+			throw new E\UndefinedPrimaryKeyException(
+				'The primary key you specified is not represented in the database or the row already had the same values as the new values.');
 		}
 	}
 	
@@ -164,21 +152,18 @@ abstract class Model {
 	private final function updateModel() {
 		foreach($this->entity->fields as $field) {
 			if($field->updateModel) {
-				$updateModel = true;
+				try {
+					$newValues = $this->table->select($this->entity->getDBValues($this->table->primaryKeyConstraint->columns));
+					foreach($newValues as $columnName => $value)
+						if($this->entity->fields[$columnName]->updateModel)
+							$this->entity->fields[$columnName]->dbValue = $value;
+					$this->entity->updateIdentifiers();
+					$this->entity->existsInDB = true;
+				} catch(NonExistentEntityException $exception) {
+					throw new E\UndefinedPrimaryKeyException(
+						'The primary key you specified is not represented in the database.');
+				}
 				break;
-			}
-		}
-		if($updateModel) {
-			try {
-				$newValues = $this->table->select($this->getDatabasePrimaryKeyValues());
-				foreach($newValues as $columnName => $value)
-					if($this->entity->fields[$columnName]->updateModel)
-						$this->entity->fields[$columnName]->dbValue = $value;
-				$this->entity->updateIdentifiers();
-				$this->entity->existsInDB = true;
-			} catch(NonExistentEntityException $exception) {
-				throw new E\UndefinedPrimaryKeyException(
-					'The primary key you specified is not represented in the database.');
 			}
 		}
 	}
@@ -191,14 +176,6 @@ abstract class Model {
 			throw new E\UndefinedPrimaryKeyException(
 				'The primary key you specified is not represented in the database.');
 		}
-	}
-	
-	private function getDatabasePrimaryKeyValues() {
-		$primaryKeyValues = array();
-		foreach($this->table->primaryKeyConstraint->columns as $column) {
-			$primaryKeyValues[] = $this->entity->fields[$column->name]->dbValue;
-		}
-		return $primaryKeyValues;
 	}
 	
 	public function delete() {
@@ -253,7 +230,7 @@ abstract class Model {
 	 * @param string $name Name of the field
 	 * @return bool Wether the field is set
 	 */
-	public final function __isset($name) {
+	public function __isset($name) {
 		if($this->entity->delete)
 			throw new E\EntityDeletedException('This entity has been deleted. You cannot read its fields any longer.');
 		return isset($this->entity->fields[$name]->value);
@@ -264,7 +241,7 @@ abstract class Model {
 	 * @ignore
 	 * @param string $name Name of the field
 	 */
-	public final function __unset($name) {
+	public function __unset($name) {
 		if($this->entity->delete)
 			throw new E\EntityDeletedException('This entity has been deleted. You cannot modify its fields any longer.');
 		unset($this->entity->fields[$name]->value);
