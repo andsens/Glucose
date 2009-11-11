@@ -6,7 +6,7 @@
  * @subpackage model.exceptions
  */
 namespace Glucose\Exceptions\User;
-class ConstructorArgumentException extends UserException {
+class ConstructorArgumentException extends \InvalidArgumentException implements UserException {
 	
 }
 ?>

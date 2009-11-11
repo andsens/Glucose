@@ -1,6 +1,6 @@
 <?php
 namespace Glucose\Exceptions\Entity;
-class InvalidIdentifierException extends EntityException {
+class InvalidIdentifierException extends \RuntimeException implements EntityException {
 	
 }
 ?>

@@ -12,8 +12,8 @@
  * @property-read array $uniqueConstraints {@link Constraint constraint} specifying the {@link Constraints\UniqueKeyConstraint unqiue constraints} of the table
  */
 namespace Glucose;
-use Exceptions\Table as E;
-use Exceptions\MySQL as EM;
+use \Glucose\Exceptions\Table as E;
+use \Glucose\Exceptions\MySQL as ME;
 class Table {
 	
 	/**
@@ -99,7 +99,7 @@ class Table {
 		$this->databaseName = $databaseName;
 		$this->tableName = $tableName;
 		$this->retrieveTableInformation();
-		$this->entityEngine = new EntityEngine(array_merge(array($this->primaryKeyConstraint), $this->uniqueConstraints));
+		$this->entityEngine = new EntityEngine($this->uniqueConstraints);
 		$this->prepareSelectStatement();
 		$this->prepareInsertStatement();
 	}
@@ -177,9 +177,9 @@ End;
 		$refererConstraintName, $refererTableName, $refererColumnName);
 
 		while(self::$tableInformationQuery->fetch()) {
-			if(!isset($this->columns[$ordinalPosition]))
-				$this->columns[$ordinalPosition] = new Column((string) $name, (string) $type, (integer) $maxLength, (boolean) $isNullable == 'NO', $defaultValue);
-			$column = $this->columns[$ordinalPosition];
+			if(!isset($this->columns[$name]))
+				$this->columns[$name] = new Column((string) $name, (string) $type, (integer) $maxLength, (boolean) $isNullable == 'NO', $defaultValue);
+			$column = $this->columns[$name];
 			if($constraintType !== null) {
 				switch($constraintType) {
 					case 'PRIMARY KEY':
@@ -198,7 +198,7 @@ End;
 						break;
 					case 'FOREIGN KEY':
 						if(!isset($this->foreignKeyConstraints[$constraintName]))
-							$this->foreignKeyConstraints[$constraintName] = new ForeignKeyConstraint($constraintName);
+							$this->foreignKeyConstraints[$constraintName] = new Constraints\ForeignKeyConstraint($constraintName);
 						$this->foreignKeyConstraints[$constraintName]->addColumn($column);
 						break;
 				}
@@ -258,7 +258,7 @@ End;
 		foreach($this->columns as $column)
 			$statementTypes .= $column->statementType;
 		$statementValues = array(&$statementTypes);
-		foreach($entity->getValues() as $value)
+		foreach($entity->getValues($this->columns) as $value)
 			$statementValues[] = &$value;
 		call_user_func_array(array(&$this->insertStatement, 'bind_param'), $statementValues);
 		$this->insertStatement->execute();

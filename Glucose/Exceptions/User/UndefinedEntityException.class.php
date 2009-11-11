@@ -1,6 +1,6 @@
 <?php
 namespace Glucose\Exceptions\User;
-class UndefinedEntityException extends UserException {
+class UndefinedEntityException extends \RuntimeException implements UserException {
 	
 }
 ?>

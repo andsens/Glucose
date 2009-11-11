@@ -20,15 +20,9 @@ class Field {
 	 */
 	private $column;
 	
-	private $databaseValue;
-	
 	private $currentValue;
 	
-	/**
-	 * Wether the database needs updating
-	 * @var bool
-	 */
-	private $updateDB;
+	private $databaseValue;
 	
 	/**
 	 * Wether the model needs updating
@@ -37,13 +31,19 @@ class Field {
 	private $updateModel;
 	
 	/**
+	 * Wether the database needs updating
+	 * @var bool
+	 */
+	private $updateDB;
+	
+	/**
 	 * Constructs the Field.
 	 * @param Column $column Column this field belongs to
 	 */
 	public function __construct(Column $column) {
 		$this->column = $column;
-		$this->updateDB = false;
 		$this->updateModel = true;
+		$this->updateDB = false;
 	}
 	
 	/**
@@ -60,10 +60,10 @@ class Field {
 				return $this->currentValue;
 			case 'dbValue':
 				return $this->databaseValue;
-			case 'updateDB':
-				return $this->updateDB;
 			case 'updateModel':
 				return $this->updateModel;
+			case 'updateDB':
+				return $this->updateDB;
 		}
 	}
 	
@@ -75,15 +75,15 @@ class Field {
 	 */
 	public function __set($name, $value) {
 		switch($name) {
+			case 'modelValue':
+				$this->updateDB = $this->databaseValue != $value;
+				$this->updateModel = false;
+				$this->currentValue = $value;
+				break;
 			case 'dbValue':
 				$this->updateDB = false;
 				$this->updateModel = false;
 				$this->databaseValue = $value;
-				$this->currentValue = $value;
-				break;
-			case 'modelValue':
-				$this->updateDB = $this->databaseValue != $value;
-				$this->updateModel = false;
 				$this->currentValue = $value;
 				break;
 		}
@@ -97,8 +97,8 @@ class Field {
 	public function __unset($name) {
 		if($name == 'value') {
 			unset($this->currentValue);
-			$this->updateDB = true;
 			$this->updateModel = false;
+			$this->updateDB = true;
 		}
 	}
 	

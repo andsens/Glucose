@@ -6,7 +6,7 @@
  * @subpackage model.exceptions
  */
 namespace Glucose\Exceptions\User;
-class UndefinedFieldException extends UserException {
+class UndefinedFieldException extends \InvalidArgumentException implements UserException {
 	
 }
 ?>

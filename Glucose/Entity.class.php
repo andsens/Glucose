@@ -7,41 +7,56 @@
  */
 namespace Glucose;
 use \Glucose\Exceptions\Entity as E;
-class Entity {
-	
-	public $modelHashes = array();
-	public $dbHashes = array();
+class Entity implements \SplSubject {
 	
 	private $fields;
+	private $instanceCount;
+	
+	private $observers;
 	
 	public function __construct(array $columns) {
-		$this->fields = new \ArrayObject();
+		$fieldsArray = array();
 		foreach($columns as $column)
-			$this->fields[$column->name] = new Field($column);
+			$fieldsArray[$column->name] = new Field($column);
+		$this->fields = new ImmutableArrayObject($fieldsArray);
+		$this->instanceCount = 0;
+		
+		$this->observers = new \SplObjectStorage();
 	}
 	
-	public function getValues() {
+	public function getValues(array $columns) {
 		$values = array();
-		foreach($this->fields as $field)
-			$values[] = $field->value;
-		return $values;
-	}
-	
-	public function getModelValues(array $columns) {
-		$values = array();
-		foreach($columns as $column)
-			$values[] = $this->fields[$column->name]->value;
+		foreach($columns as $name => $column)
+			$values[$name] = $this->fields[$column->name]->value;
 		return $values;
 	}
 	
 	public function getDBValues(array $columns) {
 		$values = array();
-		foreach($columns as $column)
-			$values[] = $this->fields[$column->name]->dbValue;
+		foreach($columns as $name => $column)
+			$values[$name] = $this->fields[$column->name]->dbValue;
 		return $values;
 	}
 	
 	public function getUpdateValues() {
+		$values = array();
+		foreach($this->fields as $name => $field)
+			if($field->updateDB)
+				$values[$name] = $field->value;
+		return $values;
+	}
+
+	public function attach(\SplObserver $observer) {
+		$this->observers->attach($observer);
+	}
+	
+	public function detach(\SplObserver $observer) {
+		$this->observers->detach($observer);
+	}
+	
+	public function notify() {
+		foreach($this->observers as $observer)
+			$observer->update($this);
 	}
 	
 	private $shouldBeInDB;
@@ -67,6 +82,11 @@ class Entity {
 					$this->existsInDB = false;
 				$this->deleted = $value;
 				break;
+			case 'instanceCount':
+				$this->instanceCount = $value;
+				if($this->instanceCount == 0)
+					$this->notify();
+				break;
 		}
 	}
 	
@@ -80,6 +100,8 @@ class Entity {
 				return $this->deleted;
 			case 'instanceCount':
 				return $this->instanceCount;
+			case 'fields':
+				return $this->fields;
 		}
 	}
 }

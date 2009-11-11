@@ -1,6 +1,6 @@
 <?php
 namespace Glucose\Exceptions\Entity;
-class EntityException extends \Glucose\Exceptions\GlucoseException {
+interface EntityException extends \Glucose\Exceptions\GlucoseException {
 	
 }
 ?>

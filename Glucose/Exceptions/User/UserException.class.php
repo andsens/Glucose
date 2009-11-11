@@ -7,7 +7,7 @@
  * @subpackage model.exceptions
  */
 namespace Glucose\Exceptions\User;
-abstract class UserException extends \Glucose\Exceptions\GlucoseException {
+interface UserException extends \Glucose\Exceptions\GlucoseException {
 	
 }
 ?>

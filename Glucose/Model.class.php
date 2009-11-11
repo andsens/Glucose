@@ -107,7 +107,7 @@ abstract class Model {
 		$insertTypes = '';
 		foreach($this->entity->fields as $field) {
 			if(!isset($field->value))
-				$insertValues[] = $field->column->insertDefault;
+				$insertValues[] = $field->column->insertDefault; // TODO: STUFF
 			else
 				$insertValues[] = $field->value;
 			$insertTypes .= $field->column->statementType;

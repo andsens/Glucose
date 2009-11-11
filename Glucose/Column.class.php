@@ -80,10 +80,6 @@ class Column {
 				return $this->notNull;
 			case 'default':
 				return $this->default;
-			case 'insertDefault':
-				if($this->type == 'timestamp' && strtoupper($this->default) == 'CURRENT_TIMESTAMP')
-					return null;
-				return $this->default;
 		}
 	}
 	
@@ -92,7 +88,7 @@ class Column {
 	 * @return The type for a prepared statement
 	 */
 	private function getStatementType() {
-		switch(strtolower($this->type)) {
+		switch($this->type) {
 			case 'tinyint':
 			case 'smallint':
 			case 'mediumint':
