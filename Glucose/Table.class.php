@@ -94,7 +94,7 @@ class Table {
 		list($databaseName) = $dbNameResult->fetch_array();
 		$dbNameResult->free();
 		if($databaseName == null)
-			throw new TableException('You have not selected any database!');
+			throw new E\TableException('You have not selected any database!');
 		
 		$this->databaseName = $databaseName;
 		$this->tableName = $tableName;
@@ -170,7 +170,7 @@ End;
 		if(self::$mysqli->errno > 0) throw ME\MySQLErrorException::findClass(self::$mysqli);
 		self::$tableInformationQuery->store_result();
 		if(self::$tableInformationQuery->num_rows() == 0)
-			throw new MissingTableException("The table '".$this->tableName."' does not exist.");
+			throw new E\MissingTableException("The table '".$this->tableName."' does not exist.");
 
 		self::$tableInformationQuery->bind_result($name, $ordinalPosition, $defaultValue, $isNullable, $type, $maxLength, $extra,
 		$constraintType, $constraintName, $referencedTableName, $referencedColumnName, $updateRule, $deleteRule,
@@ -258,8 +258,9 @@ End;
 		foreach($this->columns as $column)
 			$statementTypes .= $column->statementType;
 		$statementValues = array(&$statementTypes);
-		foreach($entity->getValues($this->columns) as $value)
-			$statementValues[] = &$value;
+		$insertValues = $entity->getValues($this->columns);
+		foreach($insertValues as $key => $value)
+			$statementValues[] = &$insertValues[$key];
 		call_user_func_array(array(&$this->insertStatement, 'bind_param'), $statementValues);
 		$this->insertStatement->execute();
 		if(self::$mysqli->errno > 0) throw ME\MySQLErrorException::findClass(self::$mysqli);
@@ -275,11 +276,17 @@ End;
 	 * @throws MultipleEntitiesException
 	 * @return Associative array over the resulting values
 	 */
-	private function select(array $uniqueValues, Constraints\UniqueConstraint $constraint = null) {
+	public function select(array $uniqueValues, Constraints\UniqueConstraint $constraint = null) {
 		if($constraint === null)
 			$constraint = $this->primaryKeyConstraint;
 		elseif(!in_array($constraint, $this->uniqueConstraints, true))
 			throw new InvalidUniqueConstraintException('The unique constraint does not match any constraint in the table!');
+		$entity = $this->entityEngine->findModel($uniqueValues, $constraint);
+		if($entity !== null)
+			return $entity;
+		$entity = $this->entityEngine->findDB($uniqueValues, $constraint);
+		if($entity !== null)
+			throw new EntityValuesChangedException('The values you specified no longer match an entity.');
 		if(!isset($constraint->selectStatement)) {
 			$sql = 'SELECT `'.implode('`, `', array_diff($this->columns, $constraint->columns)).'` ';
 			$sql .= 'FROM `'.$this->databaseName.'`.`'.$this->tableName.'` ';
@@ -311,7 +318,12 @@ End;
 			throw new MultipleEntitiesException('The values you specified match two or more entries in the table.');
 		}
 		$constraint->selectStatement->free_result();
-		return $values;
+		$entity = new Entity($this->columns);
+		foreach($constraint->columns as $index => $column)
+			$entity->fields[$column->name]->dbValue = $uniqueValues[$index];
+		foreach($values as $fieldName => $fieldValue)
+			$entity->fields[$fieldName]->dbValue = $fieldValue;
+		return $entity;
 	}
 	
 	/**
@@ -326,7 +338,7 @@ End;
 		$statementValues = array(&$statementTypes);
 		foreach($entity->getUpdateValues() as $columnName => $updateValue) {
 			$updateColumnNames[] = $columnName;
-			$statementTypes .= $column->statementType;
+			$statementTypes .= $this->columns[$columnName]->statementType;
 			$statementValues[] = &$updateValue;
 		}
 		foreach($this->primaryKeyConstraint->columns as $column) {
