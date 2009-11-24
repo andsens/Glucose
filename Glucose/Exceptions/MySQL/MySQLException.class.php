@@ -6,7 +6,7 @@
  * @subpackage model.exceptions.mysql
  */
 namespace Glucose\Exceptions\MySQL;
-abstract class MySQLException extends \Glucose\Exceptions\GlucoseException {
+abstract class MySQLException extends \RuntimeException implements \Glucose\Exceptions\GlucoseException {
 
 }
 ?>

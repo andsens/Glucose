@@ -6,7 +6,7 @@
  * @subpackage model.exceptions
  */
 namespace Glucose\Exceptions\User;
-class IncompleteUniqueValueSetException \extends InvalidArgumentException implements UserException {
+class IncompleteUniqueValueSetException extends \InvalidArgumentException implements UserException {
 	
 }
 ?>
