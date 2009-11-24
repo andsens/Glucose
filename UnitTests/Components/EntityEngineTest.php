@@ -9,12 +9,10 @@ class EntityEngineTest extends PHPUnit_Framework_TestCase {
 	private static $constraints = array();
 	
 	public static function setUpBeforeClass() {
-		$inflector = Glucose\Inflector::getInstance();
-		foreach(array('countries', 'cities', 'people') as $className) {
-			$tableName = $inflector->tableize($className);
+		foreach(array('countries', 'cities', 'people') as $tableName) {
 			$table = new Glucose\Table($tableName);
-			self::$columns[$className] = $table->columns;
-			self::$constraints[$className] = $table->uniqueConstraints;
+			self::$columns[$tableName] = $table->columns;
+			self::$constraints[$tableName] = $table->uniqueConstraints;
 		}
 	}
 	

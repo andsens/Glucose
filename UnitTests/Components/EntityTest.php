@@ -7,11 +7,9 @@ class EntityTest extends PHPUnit_Framework_TestCase {
 	private static $columns = array();
 	
 	public static function setUpBeforeClass() {
-		$inflector = Glucose\Inflector::getInstance();
-		foreach(array('countries', 'cities', 'people') as $className) {
-			$tableName = $inflector->tableize($className);
+		foreach(array('countries', 'cities', 'people') as $tableName) {
 			$table = new Glucose\Table($tableName);
-			self::$columns[$className] = $table->columns;
+			self::$columns[$tableName] = $table->columns;
 		}
 	}
 	
