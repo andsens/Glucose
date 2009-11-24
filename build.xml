@@ -1,10 +1,52 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project name="Glucose" default="phpunit_console" basedir=".">
 	<property file="build.properties" />
-
+	
 	<target name="phpunit_console">
+		<sql driver="com.mysql.jdbc.Driver"
+		     url="jdbc:mysql://${mysql.hostname}:${mysql.port}"
+		     userid="${mysql.username}"
+		     password="${mysql.password}">
+			<classpath>
+				<pathelement location="${tests.jdbcDriver}"/>
+			</classpath>
+			DROP SCHEMA IF EXISTS `${tests.schema}`;
+			CREATE SCHEMA `${tests.schema}`;
+			DROP SCHEMA IF EXISTS `${tests.schema.comparison}`;
+			CREATE SCHEMA `${tests.schema.comparison}`;
+		</sql>
+		<sql driver="com.mysql.jdbc.Driver"
+		     url="jdbc:mysql://${mysql.hostname}:${mysql.port}/${tests.schema}"
+		     userid="${mysql.username}"
+		     password="${mysql.password}"
+		     src="${tests.sqlscript}"
+			 encoding="UTF-8">
+			<classpath>
+				<pathelement location="${tests.jdbcDriver}"/>
+			</classpath>
+		</sql>
+		<sql driver="com.mysql.jdbc.Driver"
+		     url="jdbc:mysql://${mysql.hostname}:${mysql.port}/${tests.schema.comparison}"
+		     userid="${mysql.username}"
+		     password="${mysql.password}"
+		     src="${tests.sqlscript}"
+			 encoding="UTF-8">
+			<classpath>
+				<pathelement location="${tests.jdbcDriver}"/>
+			</classpath>
+		</sql>
 		<exec dir="${tests.dir}" executable="${phpunit.executable}">
 			<arg value="--colors" />
 		</exec>
+		<sql driver="com.mysql.jdbc.Driver"
+		     url="jdbc:mysql://${mysql.hostname}:${mysql.port}"
+		     userid="${mysql.username}"
+		     password="${mysql.password}">
+			<classpath>
+				<pathelement location="${tests.jdbcDriver}"/>
+			</classpath>
+			DROP SCHEMA `${tests.schema}`;
+			DROP SCHEMA `${tests.schema.comparison}`;
+		</sql>
 	</target>
 </project>
