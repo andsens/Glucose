@@ -10,7 +10,12 @@ use \Glucose\Exceptions\Entity as E;
 class Entity implements \SplSubject {
 	
 	private $fields;
-	private $instanceCount;
+	
+	public $inDB;
+	
+	public $deleted;
+	
+	private $referenceCount;
 	
 	private $observers;
 	
@@ -19,8 +24,9 @@ class Entity implements \SplSubject {
 		foreach($columns as $column)
 			$fieldsArray[$column->name] = new Field($column);
 		$this->fields = new ImmutableArrayObject($fieldsArray);
-		$this->instanceCount = 0;
-		
+		$this->inDB = false;
+		$this->deleted = false;
+		$this->referenceCount = 0;
 		$this->observers = new \SplObjectStorage();
 	}
 	
@@ -45,7 +51,31 @@ class Entity implements \SplSubject {
 				$values[$name] = $field->value;
 		return $values;
 	}
-
+	
+	public function dbUpdated() {
+		foreach($this->fields as $field)
+			$field->dbUpdated();
+	}
+	
+	public function __get($name) {
+		switch($name) {
+			case 'fields':
+				return $this->fields;
+			case 'referenceCount':
+				return $this->referenceCount;
+		}
+	}
+	
+	public function __set($name, $value) {
+		switch($name) {
+			case 'referenceCount':
+				$this->referenceCount = $value;
+				if($this->referenceCount == 0)
+					$this->notify();
+				break;
+		}
+	}
+	
 	public function attach(\SplObserver $observer) {
 		$this->observers->attach($observer);
 	}
@@ -57,52 +87,6 @@ class Entity implements \SplSubject {
 	public function notify() {
 		foreach($this->observers as $observer)
 			$observer->update($this);
-	}
-	
-	private $shouldBeInDB;
-	
-	private $existsInDB;
-	
-	private $deleted;
-	
-	public function __set($name, $value) {
-		switch($name) {
-			case 'shouldBeInDB':
-				$this->shouldBeInDB = $value;
-				break;
-			case 'existsInDB':
-				if($value === true)
-					$this->deleted = false;
-				$this->shouldBeInDB = $value;
-				$this->existsInDB = $value;
-				break;
-			case 'deleted':
-				if($value === true)
-					$this->shouldBeInDB = false;
-					$this->existsInDB = false;
-				$this->deleted = $value;
-				break;
-			case 'instanceCount':
-				$this->instanceCount = $value;
-				if($this->instanceCount == 0)
-					$this->notify();
-				break;
-		}
-	}
-	
-	public function __get($name) {
-		switch($name) {
-			case 'shouldBeInDB':
-				return $this->shouldBeInDB;
-			case 'existsInDB':
-				return $this->existsInDB;
-			case 'deleted':
-				return $this->deleted;
-			case 'instanceCount':
-				return $this->instanceCount;
-			case 'fields':
-				return $this->fields;
-		}
 	}
 }
 ?>

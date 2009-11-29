@@ -146,19 +146,35 @@ class EntityEngineTest extends PHPUnit_Framework_TestCase {
 		$this->assertEquals(3, $denmark2->fields['id']->value);
 	}
 	
-	public function testCollisionDetectionModel() {
+	public function testCollisionDetectionModel1() {
 		$engine = new EntityEngine(self::$constraints['countries']);
 		
 		$denmark1 = new Entity(self::$columns['countries']);
 		$denmark1->fields['id']->modelValue = 1;
 		$engine->updateIdentifiersModel($denmark1);
-		
 		$denmark2 = new Entity(self::$columns['countries']);
 		$denmark2->fields['id']->modelValue = 1;
 		
 		$this->setExpectedException('Glucose\Exceptions\Entity\ModelConstraintCollisionException',
 		'An entity with the same set of values for the unique constraint PRIMARY already exists in the model');
 		$engine->updateIdentifiersModel($denmark2);
+	}
+	
+	public function testCollisionDetectionModel2() {
+		$engine = new EntityEngine(self::$constraints['cities']);
+		
+		$copenhagen1 = new Entity(self::$columns['cities']);
+		$copenhagen1->fields['country']->modelValue = 1;
+		$copenhagen1->fields['postal_code']->modelValue = 1000;
+		$engine->updateIdentifiersModel($copenhagen1);
+		
+		$copenhagen2 = new Entity(self::$columns['cities']);
+		$copenhagen2->fields['country']->modelValue = 1;
+		$copenhagen2->fields['postal_code']->modelValue = 1000;
+		
+		$this->setExpectedException('Glucose\Exceptions\Entity\ModelConstraintCollisionException',
+		'An entity with the same set of values for the unique constraint UNIQUE_cities__country__postal_code already exists in the model');
+		$engine->updateIdentifiersModel($copenhagen2);
 	}
 	
 	public function testFindInvalidIdentifer() {
@@ -173,8 +189,7 @@ class EntityEngineTest extends PHPUnit_Framework_TestCase {
 		$denmark1 = new Entity(self::$columns['countries']);
 		$denmark1->fields['id']->modelValue = 1;
 		$engine->updateIdentifiersModel($denmark1);
-		$denmark1->instanceCount++;
-		$denmark1->instanceCount--;
+		$engine->dereference($denmark1);
 		
 		$denmark2 = $engine->findModel(array(1), self::$constraints['countries']['PRIMARY']);
 		$this->assertNull($denmark2);

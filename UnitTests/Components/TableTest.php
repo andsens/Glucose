@@ -22,41 +22,79 @@ class TableTest extends TableComparisonTestCase {
 		return self::$mysqli;
 	}
 	
-	public function testSelect1() {
-		$cities = self::$tables['cities'];
-		$arhus = $cities->select(array(1), $cities->primaryKeyConstraint);
-		$this->assertEquals(1, $arhus->fields['id']->value);
-		$this->assertEquals(2, $arhus->fields['country']->value);
-		$this->assertEquals('Århus', $arhus->fields['name']->value);
-		$this->assertEquals(8000, $arhus->fields['postal_code']->value);
+	public function insertInto($tableName, array $values) {
+		$fields = '(`'.implode('`, `', array_keys($values)).'`)';
+		$values = "('".implode("', '", $values)."')";
+		self::$mysqli->query("INSERT INTO `{$GLOBALS['comparisonSchema']}`.`{$tableName}`
+		{$fields} VALUES {$values}");
+		return self::$mysqli->insert_id;
 	}
 	
 	public function testInsert1() {
-		$cityComparison = '`'.$GLOBALS['comparisonSchema'].'`.`cities`';
-		$cityFields = '(`country`, `name`, `postal_code`)';
+		$values = array(
+			'country' => 2,
+			'name' => 'København',
+			'postal_code' => 1000);
 		$cities = self::$tables['cities'];
-		$copenhagen = new Entity($cities->columns);
-		$copenhagen->fields['country']->modelValue = 2;
-		$copenhagen->fields['name']->modelValue = 'København';
-		$copenhagen->fields['postal_code']->modelValue = 1000;
-		$cities->insert($copenhagen);
-		self::$mysqli->query("INSERT INTO {$cityComparison} {$cityFields} VALUES (2, 'København', 1000)");
+		$copenhagen = $cities->newEntity();
+		$copenhagen->referenceCount++;
+		foreach($values as $field => $value)
+			$copenhagen->fields[$field]->modelValue = $value;
+		$copenhagen->referenceCount--;
+		$insertID = $this->insertInto('cities', $values);
+		$this->assertEquals(self::$mysqli->insert_id, $copenhagen->fields['id']->value);
 		$this->assertTablesEqual($GLOBALS['comparisonSchema'], 'cities', $GLOBALS['schema'], 'cities');
 	}
 	
 	public function testInsert2() {
-		$peopleComparison = '`'.$GLOBALS['comparisonSchema'].'`.`people`';
-		$peopleFields = '(`first_name`, `last_name`, `email`, `address`, `city`)';
+		$values = array(
+			'first_name' => 'Anders',
+			'last_name' => 'And',
+			'email' => 'anders@ande.net',
+			'address' => 'Paradisæblevej 111',
+			'city' => 4);
 		$people = self::$tables['people'];
-		$donaldDuck = new Entity($people->columns);
-		$donaldDuck->fields['first_name']->modelValue = 'Anders';
-		$donaldDuck->fields['last_name']->modelValue = 'And';
-		$donaldDuck->fields['email']->modelValue = 'anders@ande.net';
-		$donaldDuck->fields['address']->modelValue = 'Paradisæblevej 111';
-		$donaldDuck->fields['city']->modelValue = 4;
-		$people->insert($donaldDuck);
-		self::$mysqli->query("INSERT INTO {$peopleComparison} {$peopleFields} VALUES ('Anders', 'And', 'anders@ande.net', 'Paradisæblevej 111', 4)");
+		$donaldDuck = $people->newEntity();
+		$donaldDuck->referenceCount++;
+		foreach($values as $field => $value)
+			$donaldDuck->fields[$field]->modelValue = $value;
+		$donaldDuck->referenceCount--;
+		$insertID = $this->insertInto('people', $values);
+		$this->assertEquals($insertID, $donaldDuck->fields['id']->value);
 		$this->assertTablesEqual($GLOBALS['comparisonSchema'], 'people', $GLOBALS['schema'], 'people');
+	}
+	
+	public function testSelectUpdate1() {
+		
+	}
+	
+	public function testSelectUpdate2() {
+		
+	}
+	
+	public function testSelectDelete1() {
+		
+	}
+	
+	public function testSelectDelete2() {
+		
+	}
+	
+	public function testDeleteAnonymous() {
+		
+	}
+	
+	public function testCollision() {
+		$countries = self::$tables['countries'];
+		$uganda1 = $countries->newEntity();
+		$uganda1->fields['name']->modelValue = 'Uganda';
+		$countries->updateIdentifiers($uganda1);
+		$uganda2 = $countries->newEntity();
+		$uganda2->fields['name']->modelValue = 'Uganda';
+		$this->setExpectedException('Glucose\Exceptions\Entity\ModelConstraintCollisionException',
+		'An entity with the same set of values for the unique constraint UNIQUE_countries__name already exists in the model');
+		$countries->updateIdentifiers($uganda2);
+		$this->assertTablesEqual($GLOBALS['comparisonSchema'], 'countries', $GLOBALS['schema'], 'countries');
 	}
 	
 	protected function tearDown() {

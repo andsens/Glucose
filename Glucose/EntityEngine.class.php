@@ -7,23 +7,23 @@
  */
 namespace Glucose;
 use \Glucose\Exceptions\Entity as E;
-class EntityEngine implements \SplObserver {
+class EntityEngine {
+	
+	private $uniqueConstraints;
 	
 	private $modelEntities = array();
 	private $dbEntities = array();
 	
-	private $entityModelHashes = array();
-	private $entityDBHashes = array();
-	
-	private $uniqueConstraints;
+	private $modelHashes = array();
+	private $dbHashes = array();
 	
 	public function __construct(array $uniqueConstraints) {
 		$this->uniqueConstraints = $uniqueConstraints;
 		foreach($this->uniqueConstraints as $constraint) {
 			$this->modelEntities[$constraint->name] = array();
 			$this->dbEntities[$constraint->name] = array();
-			$this->entityModelHashes[$constraint->name] = new \SplObjectStorage;
-			$this->entityDBHashes[$constraint->name] = new \SplObjectStorage;
+			$this->modelHashes[$constraint->name] = new \SplObjectStorage;
+			$this->dbHashes[$constraint->name] = new \SplObjectStorage;
 		}
 	}
 	
@@ -44,8 +44,11 @@ class EntityEngine implements \SplObserver {
 		return null;
 	}
 	
+	/**
+	 *
+	 * @throws Glucose\Exceptions\Entity\ModelConstraintCollisionException
+	 */
 	public function updateIdentifiersModel(Entity $entity) {
-		$entity->attach($this);
 		$newHashes = array();
 		foreach($this->uniqueConstraints as $constraint) {
 			$hash = $this->hashIdentifier($entity->getValues($constraint->columns));
@@ -57,19 +60,23 @@ class EntityEngine implements \SplObserver {
 		}
 		foreach($newHashes as $constraintName => $hash) {
 			$oldHash = null;
-			if($this->entityModelHashes[$constraintName]->contains($entity))
-				$oldHash = $this->entityModelHashes[$constraintName][$entity];
+			if($this->modelHashes[$constraintName]->contains($entity))
+				$oldHash = $this->modelHashes[$constraintName][$entity];
 			if($hash != $oldHash) {
 				unset($this->modelEntities[$constraintName][$oldHash]);
 				if($hash !== null)
 					$this->modelEntities[$constraintName][$hash] = $entity;
 			}
-			$this->entityModelHashes[$constraintName][$entity] = $hash;
+			$this->modelHashes[$constraintName][$entity] = $hash;
 		}
 	}
 	
+	
+	/**
+	 *
+	 * @throws Glucose\Exceptions\Entity\DatabaseConstraintCollisionException
+	 */
 	public function updateIdentifiersDB(Entity $entity) {
-		$entity->attach($this);
 		$newHashes = array();
 		foreach($this->uniqueConstraints as $constraint) {
 			$hash = $this->hashIdentifier($entity->getDBValues($constraint->columns));
@@ -81,34 +88,30 @@ class EntityEngine implements \SplObserver {
 		}
 		foreach($newHashes as $constraintName => $hash) {
 			$oldHash = null;
-			if($this->entityDBHashes[$constraintName]->contains($entity))
-				$oldHash = $this->entityDBHashes[$constraintName][$entity];
+			if($this->dbHashes[$constraintName]->contains($entity))
+				$oldHash = $this->dbHashes[$constraintName][$entity];
 			if($hash != $oldHash) {
 				unset($this->dbEntities[$constraintName][$oldHash]);
 				if($hash !== null)
 					$this->dbEntities[$constraintName][$hash] = $entity;
 			}
-			$this->entityDBHashes[$constraintName][$entity] = $hash;
+			$this->dbHashes[$constraintName][$entity] = $hash;
 		}
 	}
 	
-	public function update(\SplSubject $entity) {
-		if($entity->instanceCount == 0) {
-			foreach($this->uniqueConstraints as $constraintName => $constraint) {
-				if($this->entityModelHashes[$constraintName]->contains($entity)) {
-					if($this->entityModelHashes[$constraintName]->contains($entity))
-						$hash = $this->entityModelHashes[$constraintName][$entity];
-					if($hash !== null)
-						unset($this->modelEntities[$constraintName][$hash]);
-					$this->entityModelHashes[$constraintName]->detach($entity);
-				}
-				
-				if($this->entityDBHashes[$constraintName]->contains($entity)) {
-						$hash = $this->entityDBHashes[$constraintName][$entity];
-					if($hash !== null)
-						unset($this->dbEntities[$constraintName][$hash]);
-						$this->entityDBHashes[$constraintName]->detach($entity);
-				}
+	public function dereference(Entity $entity) {
+		foreach($this->uniqueConstraints as $constraintName => $constraint) {
+			if($this->modelHashes[$constraintName]->contains($entity)) {
+				$hash = $this->modelHashes[$constraintName][$entity];
+				if($hash !== null)
+					unset($this->modelEntities[$constraintName][$hash]);
+				$this->modelHashes[$constraintName]->detach($entity);
+			}
+			if($this->dbHashes[$constraintName]->contains($entity)) {
+				$hash = $this->dbHashes[$constraintName][$entity];
+				if($hash !== null)
+					unset($this->dbEntities[$constraintName][$hash]);
+				$this->dbHashes[$constraintName]->detach($entity);
 			}
 		}
 	}
@@ -116,7 +119,10 @@ class EntityEngine implements \SplObserver {
 	private static function hashIdentifier(array $identifier) {
 		$compoundHash = '';
 		foreach($identifier as $value)
-			$compoundHash .= sha1($value);
+			if($value === null)
+				return null;
+			else
+				$compoundHash .= sha1($value);
 		return sha1($compoundHash);
 	}
 }

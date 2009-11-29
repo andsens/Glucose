@@ -11,7 +11,8 @@ DROP TABLE IF EXISTS `countries` ;
 CREATE  TABLE IF NOT EXISTS `countries` (
   `id` INT NOT NULL AUTO_INCREMENT ,
   `name` VARCHAR(255) NOT NULL ,
-  PRIMARY KEY (`id`) )
+  PRIMARY KEY (`id`) ,
+  UNIQUE INDEX `UNIQUE_countries__name` (`name` ASC) )
 ENGINE = InnoDB;
 
 
