@@ -2,8 +2,8 @@
 /**
  *
  * @author andsens
- * @package model
- * @subpackage model.exceptions.mysql
+ * @package glucose
+ * @subpackage glucose.exceptions.mysql
  */
 namespace Glucose\Exceptions\MySQL\Client;
 class MySQLClientErrorException extends \Glucose\Exceptions\MySQL\MySQLErrorException {

@@ -2,8 +2,8 @@
 /**
  *
  * @author andsens
- * @package model
- * @subpackage model.exceptions
+ * @package glucose
+ * @subpackage glucose.exceptions.table
  */
 namespace Glucose\Exceptions\Table;
 class InvalidUniqueConstraintException extends \InvalidArgumentException implements TableException {

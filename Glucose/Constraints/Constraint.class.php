@@ -1,8 +1,6 @@
 <?php
 /**
  * Represents a constraint on a {@link Table table}.
- * This class is abstract and is useless in itself.
- * It does however provide children of this class with various datastructures.
  * @author andsens
  * @package glucose
  * @subpackage glucose.constraints
