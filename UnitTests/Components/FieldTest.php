@@ -13,30 +13,30 @@ class FieldTest extends PHPUnit_Framework_TestCase {
 		}
 	}
 	
-	public function testFieldInitialization() {
+	public function test_P_FieldInitialization() {
 		$field = new Field(self::$columns['cities']['id']);
 		$this->assertEquals(self::$columns['cities']['id'], $field->column);
 	}
 	
-	public function testInitialUpdateStates() {
+	public function test_P_InitialUpdateStates() {
 		$field = new Field(self::$columns['cities']['id']);
 		$this->assertTrue($field->updateModel);
 		$this->assertFalse($field->updateDB);
 	}
 	
-	public function testModelValueChanged() {
+	public function test_P_ModelValueChanged() {
 		$field = new Field(self::$columns['cities']['id']);
 		$field->modelValue = 2;
 		$this->assertEquals(2, $field->value);
 	}
 	
-	public function testDBValueChanged() {
+	public function test_P_DBValueChanged() {
 		$field = new Field(self::$columns['cities']['id']);
 		$field->dbValue = 2;
 		$this->assertEquals(2, $field->value);
 	}
 	
-	public function testUpdateModelFlag() {
+	public function test_P_UpdateModelFlag() {
 		$column = new Column('some_timestamp', 'timestamp', null, true, 'CURRENT_TIMESTAMP');
 		$field = new Field($column);
 		$field->dbValue = new DateTime();
@@ -44,24 +44,31 @@ class FieldTest extends PHPUnit_Framework_TestCase {
 		$this->assertTrue($field->updateModel);
 	}
 	
-	public function testUpdateDBFlag() {
+	public function test_P_UpdateDBFlag() {
 		$field = new Field(self::$columns['cities']['id']);
 		$field->modelValue = 2;
 		$this->assertTrue($field->updateDB);
 	}
 	
-	public function testIsNotSet() {
+	public function test_P_IsNotSet() {
 		$field = new Field(self::$columns['cities']['id']);
 		$this->assertFalse(isset($field->value));
 	}
 	
-	public function testIsSet() {
+	public function test_P_IsSet() {
 		$field = new Field(self::$columns['cities']['id']);
 		$field->modelValue = 2;
 		$this->assertTrue(isset($field->value));
 	}
 	
-	public function testDefaultOnUpdate() {
+	public function test_P_UnSet() {
+		$field = new Field(self::$columns['cities']['id']);
+		$field->modelValue = 2;
+		unset($field->value);
+		$this->assertFalse(isset($field->value));
+	}
+	
+	public function test_P_DefaultOnUpdate() {
 		$column = new Column('some_string', 'varchar', 16, true, 'String');
 		$field = new Field($column);
 		$field->dbUpdated();
@@ -69,7 +76,7 @@ class FieldTest extends PHPUnit_Framework_TestCase {
 		$this->assertFalse($field->updateModel);
 	}
 	
-	public function testModelValueOnUpdate() {
+	public function test_P_ModelValueOnUpdate() {
 		$field = new Field(self::$columns['cities']['id']);
 		$field->modelValue = 2;
 		$field->dbUpdated();

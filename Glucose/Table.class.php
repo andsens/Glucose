@@ -91,12 +91,12 @@ class Table implements \SplObserver {
 	 */
 	public function __construct($tableName) {
 		if(!isset(self::$mysqli))
-			throw new MySQLConnectionException('No database connection has been defined');
+			throw new MySQLConnectionException('No database connection has been defined.');
 		$dbNameResult = self::$mysqli->query('SELECT DATABASE();');
 		list($databaseName) = $dbNameResult->fetch_array();
 		$dbNameResult->free();
 		if($databaseName == null)
-			throw new E\TableException('You have not selected any database!');
+			throw new E\NoDatabaseSelectedException('You have not selected any database.');
 		
 		$this->databaseName = $databaseName;
 		$this->tableName = $tableName;
@@ -208,7 +208,7 @@ End;
 		}
 		self::$tableInformationQuery->free_result();
 		if(!isset($this->primaryKeyConstraint))
-			throw new MissingPrimaryKeyConstraintException('The table "'.$this->tableName.'" does not have any primary key constraints.');
+			throw new E\MissingPrimaryKeyConstraintException('The table "'.$this->tableName.'" does not have any primary key constraints.');
 	}
 
 	/**
@@ -270,6 +270,7 @@ End;
 			$entity->fields[$this->primaryKeyConstraint->autoIncrementColumn->name]->dbValue = self::$mysqli->insert_id;
 		$entity->dbUpdated();
 		$entity->inDB = true;
+		$this->entityEngine->updateIdentifiersDB($entity);
 	}
 	
 	/**
@@ -281,19 +282,19 @@ End;
 	 * @throws MultipleEntitiesException
 	 * @return Associative array over the resulting values
 	 */
-	public function selectFromDB(array $uniqueValues, Constraints\UniqueConstraint $constraint = null) {
+	public function select(array $uniqueValues, Constraints\UniqueConstraint $constraint = null) {
 		if($constraint === null)
 			$constraint = $this->primaryKeyConstraint;
 		elseif(!in_array($constraint, $this->uniqueConstraints, true))
-			throw new InvalidUniqueConstraintException('The unique constraint does not match any constraint in the table!');
+			throw new E\InvalidUniqueConstraintException('The unique constraint does not match any constraint in the table.');
+		
 		$entity = $this->entityEngine->findModel($uniqueValues, $constraint);
-		if($entity !== null) {
-			$this->entityEngine->addReference($entity);
+		if($entity !== null)
 			return $entity;
-		}
 		$entity = $this->entityEngine->findDB($uniqueValues, $constraint);
 		if($entity !== null)
-			throw new EntityValuesChangedException('The values you specified no longer match an entity.');
+			throw new E\EntityValuesChangedException('The values you specified no longer match an entity.');
+		
 		if(!isset($constraint->selectStatement)) {
 			$sql = 'SELECT `'.implode('`, `', array_diff($this->columns, $constraint->columns)).'` ';
 			$sql .= 'FROM `'.$this->databaseName.'`.`'.$this->tableName.'` ';
@@ -309,6 +310,7 @@ End;
 		$constraint->selectStatement->execute();
 		if(self::$mysqli->errno > 0) throw MySQLErrorException::findClass(self::$mysqli);
 		$constraint->selectStatement->store_result();
+		
 		$values = null;
 		$numberOfRowsReturned = $constraint->selectStatement->num_rows();
 		if($numberOfRowsReturned == 1) {
@@ -319,12 +321,14 @@ End;
 				$fields[] = &$values[$field->name];
 			call_user_func_array(array(&$constraint->selectStatement, 'bind_result'), $fields);
 			$constraint->selectStatement->fetch();
+			$constraint->selectStatement->free_result();
 		} elseif($numberOfRowsReturned < 1) {
-			throw new NonExistentEntityException('The values you specified do not match any entry in the table.');
+			$constraint->selectStatement->free_result();
+			throw new E\NonExistentEntityException('The values you specified do not match any entry in the table.');
 		} else {
-			throw new MultipleEntitiesException('The values you specified match two or more entries in the table.');
+			$constraint->selectStatement->free_result();
+			throw new E\MultipleEntitiesException('The values you specified match two or more entries in the table.');
 		}
-		$constraint->selectStatement->free_result();
 		
 		if($constraint != $this->primaryKeyConstraint) {
 			$primaryKeyValues = array();
@@ -334,20 +338,15 @@ End;
 		}
 		if($entity === null)
 			$entity = $this->newEntity();
-		
 		foreach($constraint->columns as $index => $column)
 			if(!isset($entity->fields[$column->name]->value))
 				$entity->fields[$column->name]->dbValue = $uniqueValues[$index];
 		foreach($values as $fieldName => $fieldValue)
-			if(!isset($entity->fields[$column->name]->value))
+			if(!isset($entity->fields[$fieldName]->value))
 				$entity->fields[$fieldName]->dbValue = $fieldValue;
-		try {
-			$this->entityEngine->updateIdentifiersDB($entity);
-			$this->entityEngine->updateIdentifiersModel($entity);
-		} catch(EE\DuplicateEntityException $exception) {
-			print $exception->getMessage();
-		}
-		$this->entityEngine->addReference($entity);
+		$entity->inDB = true;
+		$this->entityEngine->updateIdentifiersDB($entity);
+		$this->entityEngine->updateIdentifiersModel($entity);
 		return $entity;
 	}
 	
@@ -369,9 +368,11 @@ End;
 			$statementTypes .= $this->columns[$columnName]->statementType;
 			$statementValues[] = &$updateValue;
 		}
+		$identifier = array();
 		foreach($this->primaryKeyConstraint->columns as $column) {
 			$statementTypes .= $column->statementType;
-			$statementValues[] = $entity->fields[$column->name]->dbValue;
+			$identifier[$column->name] = $entity->fields[$column->name]->dbValue;
+			$statementValues[] = &$identifier[$column->name];
 		}
 		
 		$updateStatement = $this->primaryKeyConstraint->getUpdateStatement($updateColumnNames);
@@ -388,11 +389,12 @@ End;
 		if(self::$mysqli->errno > 0) throw MySQLErrorException::findClass(self::$mysqli);
 		$numberOfRowsAffected = $updateStatement->affected_rows;
 		if($numberOfRowsAffected < 1) {
-			throw new NoAffectedRowException('The values you specified do not match any entry in the table or the update caused no changes.');
+			throw new E\NoAffectedRowException('The values you specified do not match any entry in the table or the update caused no changes.');
 		} elseif($numberOfRowsAffected > 1) {
-			throw new MultipleEntitiesException('The values you specified match two or more entries in the table.');
+			throw new E\MultipleEntitiesException('The values you specified match two or more entries in the table.');
 		}
 		$entity->dbUpdated();
+		$this->entityEngine->updateIdentifiersDB($entity);
 	}
 	
 	private function deleteFromDB(Entity $entity) {
@@ -412,9 +414,9 @@ End;
 		if(self::$mysqli->errno > 0) throw MySQLErrorException::findClass(self::$mysqli);
 		$numberOfRowsAffected = $this->primaryKeyConstraint->deleteStatement->affected_rows;
 		if($numberOfRowsAffected < 1) {
-			throw new NoAffectedRowException('The values you specified do not match any entry in the table.');
+			throw new E\NoAffectedRowException('The values you specified do not match any entry in the table.');
 		} elseif($numberOfRowsAffected > 1) {
-			throw new MultipleEntitiesException('The values you specified match two or more entries in the table.');
+			throw new E\MultipleEntitiesException('The values you specified match two or more entries in the table.');
 		}
 		$entity->inDB = false;
 	}

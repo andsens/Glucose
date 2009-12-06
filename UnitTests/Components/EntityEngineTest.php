@@ -16,11 +16,11 @@ class EntityEngineTest extends PHPUnit_Framework_TestCase {
 		}
 	}
 	
-	public function testAnonymousIndependenceModel() {
+	public function test_P_AnonymousIndependenceModel() {
 		$this->anonymousIndependenceTest('modelValue');
 	}
 	
-	public function testAnonymousIndependenceDB() {
+	public function test_P_AnonymousIndependenceDB() {
 		$this->anonymousIndependenceTest('dbValue');
 	}
 	
@@ -43,11 +43,11 @@ class EntityEngineTest extends PHPUnit_Framework_TestCase {
 		$this->assertEquals('København', $copenhagen->fields['name']->value);
 	}
 	
-	public function testIndependenceInSameClassModel() {
+	public function test_P_IndependenceInSameClassModel() {
 		$this->independenceInSameClassTest('modelValue');
 	}
 	
-	public function testIndependenceInSameClassDB() {
+	public function test_P_IndependenceInSameClassDB() {
 		$this->independenceInSameClassTest('dbValue');
 	}
 	
@@ -72,11 +72,11 @@ class EntityEngineTest extends PHPUnit_Framework_TestCase {
 		$this->assertEquals('Deutschland', $germany->fields['name']->value);
 	}
 	
-	public function testIndependenceInDifferentClassesModel() {
+	public function test_P_IndependenceInDifferentClassesModel() {
 		$this->independenceInDifferentClassesTest('modelValue');
 	}
 	
-	public function testIndependenceInDifferentClassesDB() {
+	public function test_P_IndependenceInDifferentClassesDB() {
 		$this->independenceInDifferentClassesTest('dbValue');
 	}
 	
@@ -103,15 +103,15 @@ class EntityEngineTest extends PHPUnit_Framework_TestCase {
 		$this->assertEquals('København', $copenhagen->fields['name']->value);
 	}
 	
-	public function testEntityFindingModel() {
+	public function test_P_EntityFindingModel() {
 		$this->EntityFindingTest('modelValue');
 	}
 	
-	public function testEntityFindingDB() {
+	public function test_P_EntityFindingDB() {
 		$this->EntityFindingTest('dbValue');
 	}
 	
-	public function EntityFindingTest($field) {
+	private function EntityFindingTest($field) {
 		$engine = new EntityEngine(self::$constraints['countries']);
 		
 		$denmark = new Entity(self::$columns['countries']);
@@ -128,7 +128,7 @@ class EntityEngineTest extends PHPUnit_Framework_TestCase {
 		$this->assertEquals($denmark, $denmark2);
 	}
 	
-	public function testConcurrencyModel() {
+	public function test_P_ConcurrencyModel() {
 		$engine = new EntityEngine(self::$constraints['countries']);
 		
 		$denmark1 = new Entity(self::$columns['countries']);
@@ -146,7 +146,7 @@ class EntityEngineTest extends PHPUnit_Framework_TestCase {
 		$this->assertEquals(3, $denmark2->fields['id']->value);
 	}
 	
-	public function testCollisionDetectionModel1() {
+	public function test_N_CollisionDetectionModel1() {
 		$engine = new EntityEngine(self::$constraints['countries']);
 		
 		$denmark1 = new Entity(self::$columns['countries']);
@@ -160,7 +160,7 @@ class EntityEngineTest extends PHPUnit_Framework_TestCase {
 		$engine->updateIdentifiersModel($denmark2);
 	}
 	
-	public function testCollisionDetectionModel2() {
+	public function test_N_CollisionDetectionModel2() {
 		$engine = new EntityEngine(self::$constraints['cities']);
 		
 		$copenhagen1 = new Entity(self::$columns['cities']);
@@ -177,13 +177,13 @@ class EntityEngineTest extends PHPUnit_Framework_TestCase {
 		$engine->updateIdentifiersModel($copenhagen2);
 	}
 	
-	public function testFindInvalidIdentifer() {
+	public function test_N_FindInvalidIdentifer() {
 		$engine = new EntityEngine(self::$constraints['countries']);
 		$this->setExpectedException('Glucose\Exceptions\Entity\InvalidIdentifierException', 'The identifier may not contain null');
 		$engine->findDB(array(null), self::$constraints['countries']['PRIMARY']);
 	}
 	
-	public function testSuccessfulDestruction() {
+	public function test_P_SuccessfulDestruction() {
 		$engine = new EntityEngine(self::$constraints['countries']);
 		
 		$denmark1 = new Entity(self::$columns['countries']);

@@ -3,7 +3,7 @@ namespace Glucose;
 use \BadMethodCallException;
 class ImmutableArrayObject extends \ArrayObject {
 	
-	private $cannotAlterMessage = 'The array cannot be altered after initialization';
+	private $cannotAlterMessage = 'The array cannot be altered after initialization.';
 	
 	public function append($value) {
 		throw new BadMethodCallException($this->cannotAlterMessage);
@@ -29,9 +29,16 @@ class ImmutableArrayObject extends \ArrayObject {
 		throw new BadMethodCallException($this->cannotAlterMessage);
 	}
 	
+	public function offsetGet($offset) {
+		if(parent::offsetExists($offset))
+			return parent::offsetGet($offset);
+		throw new \OutOfBoundsException('The offset you are trying to access does not exist.');
+	}
+	
 	public function offsetSet($offset, $value) {
 		throw new BadMethodCallException($this->cannotAlterMessage);
 	}
+	
 	
 	public function offsetUnset($offset) {
 		throw new BadMethodCallException($this->cannotAlterMessage);

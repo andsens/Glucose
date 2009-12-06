@@ -1,52 +1,79 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project name="Glucose" default="phpunit_console" basedir=".">
+<project name="Glucose" default="phpunit" basedir=".">
 	<property file="build.properties" />
+
+	<target name="phpunit">
+		<antcall target="Build test tables" />
+		<antcall target="Run PHPUnit tests" />
+		<antcall target="Drop test tables" />
+	</target>
+	<target name="coverage">
+		<antcall target="Build test tables" />
+		<antcall target="Run PHPUnit tests with code coverage" />
+		<antcall target="Drop test tables" />
+	</target>
 	
-	<target name="phpunit_console">
-		<sql driver="com.mysql.jdbc.Driver"
-		     url="jdbc:mysql://${mysql.hostname}:${mysql.port}"
-		     userid="${mysql.username}"
-		     password="${mysql.password}">
-			<classpath>
-				<pathelement location="${tests.jdbcDriver}"/>
-			</classpath>
-			DROP SCHEMA IF EXISTS `${tests.schema}`;
-			CREATE SCHEMA `${tests.schema}`;
-			DROP SCHEMA IF EXISTS `${tests.schema.comparison}`;
-			CREATE SCHEMA `${tests.schema.comparison}`;
-		</sql>
-		<sql driver="com.mysql.jdbc.Driver"
-		     url="jdbc:mysql://${mysql.hostname}:${mysql.port}/${tests.schema}"
-		     userid="${mysql.username}"
-		     password="${mysql.password}"
-		     src="${tests.sqlscript}"
-			 encoding="UTF-8">
-			<classpath>
-				<pathelement location="${tests.jdbcDriver}"/>
-			</classpath>
-		</sql>
-		<sql driver="com.mysql.jdbc.Driver"
-		     url="jdbc:mysql://${mysql.hostname}:${mysql.port}/${tests.schema.comparison}"
-		     userid="${mysql.username}"
-		     password="${mysql.password}"
-		     src="${tests.sqlscript}"
-			 encoding="UTF-8">
-			<classpath>
-				<pathelement location="${tests.jdbcDriver}"/>
-			</classpath>
-		</sql>
-		<exec dir="${tests.dir}" executable="${phpunit.executable}">
+	<target name="Run PHPUnit tests">
+		<exec dir="${test.dir}" executable="${phpunit.executable}">
+			<arg value="--colors" />
+			<arg line="--testdox-html ${report.agiledoc.file}" />
+		</exec>
+	</target>
+	
+	<target name="Run PHPUnit tests with code coverage">
+		<exec dir="${test.dir}" executable="${phpunit.executable}">
+			<arg line="--coverage-html ${report.coverage.dir}" />
 			<arg value="--colors" />
 		</exec>
+	</target>
+	
+	<target name="Build test tables">
 		<sql driver="com.mysql.jdbc.Driver"
 		     url="jdbc:mysql://${mysql.hostname}:${mysql.port}"
 		     userid="${mysql.username}"
 		     password="${mysql.password}">
 			<classpath>
-				<pathelement location="${tests.jdbcDriver}"/>
+				<pathelement location="${test.jdbcDriver}"/>
 			</classpath>
-			DROP SCHEMA `${tests.schema}`;
-			DROP SCHEMA `${tests.schema.comparison}`;
+			DROP SCHEMA IF EXISTS `${test.schema}`;
+			CREATE SCHEMA `${test.schema}`;
+			DROP SCHEMA IF EXISTS `${test.schema.comparison}`;
+			CREATE SCHEMA `${test.schema.comparison}`;
+		</sql>
+		<parallel>
+			<sql driver="com.mysql.jdbc.Driver"
+			     url="jdbc:mysql://${mysql.hostname}:${mysql.port}/${test.schema}"
+			     userid="${mysql.username}"
+			     password="${mysql.password}"
+			     src="${test.sqlscript}"
+				 encoding="UTF-8">
+				<classpath>
+					<pathelement location="${test.jdbcDriver}"/>
+				</classpath>
+			</sql>
+			<sql driver="com.mysql.jdbc.Driver"
+			     url="jdbc:mysql://${mysql.hostname}:${mysql.port}/${test.schema.comparison}"
+			     userid="${mysql.username}"
+			     password="${mysql.password}"
+			     src="${test.sqlscript}"
+				 encoding="UTF-8">
+				<classpath>
+					<pathelement location="${test.jdbcDriver}"/>
+				</classpath>
+			</sql>
+		</parallel>
+	</target>
+	
+	<target name="Drop test tables">
+		<sql driver="com.mysql.jdbc.Driver"
+		     url="jdbc:mysql://${mysql.hostname}:${mysql.port}"
+		     userid="${mysql.username}"
+		     password="${mysql.password}">
+			<classpath>
+				<pathelement location="${test.jdbcDriver}"/>
+			</classpath>
+			DROP SCHEMA `${test.schema}`;
+			DROP SCHEMA `${test.schema.comparison}`;
 		</sql>
 	</target>
 </project>

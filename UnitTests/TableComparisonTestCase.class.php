@@ -104,7 +104,7 @@ End;
 				}
 				$excessRows[] = implode(' | ', $newRow);
 			}
-			$excess = implode("\n", $excessRows);
+			$excess = implode("\n	", $excessRows);
 			$failureDescription = <<<End
 Failed asserting that `{$expectedDB}`.`{$expectedTable}` and `{$actualDB}`.`{$actualTable}` are equal.
 Excess rows:

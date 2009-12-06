@@ -129,14 +129,5 @@ class Field {
 		else
 			$this->dbValue = $this->value;
 	}
-	
-	/**
-	 * Converts the field into a string
-	 * @ignore
-	 * @return mixed Value of the field
-	 */
-	public function __toString() {
-		return $this->modelValue;
-	}
 }
 ?>

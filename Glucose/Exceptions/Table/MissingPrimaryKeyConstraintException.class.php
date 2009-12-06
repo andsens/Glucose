@@ -6,7 +6,7 @@
  * @subpackage model.exceptions
  */
 namespace Glucose\Exceptions\Table;
-class MissingPrimaryKeyConstraintException extends TableException {
+class MissingPrimaryKeyConstraintException extends \Exception implements TableException {
 	
 }
 ?>

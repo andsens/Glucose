@@ -63,9 +63,9 @@ abstract class Model {
 		$arguments = func_get_args();
 		if(count($arguments) > 0) {
 			if(count($this->table->primaryKeyConstraint->columns) != count($arguments))
-				throw new E\ConstructorArgumentException('Wrong argument count!');
+				throw new E\ConstructorArgumentException('Wrong argument count.');
 			if(in_array(null, $arguments, true))
-				throw new E\ConstructorArgumentException('Illegal argument [null]!');
+				throw new E\ConstructorArgumentException('Illegal argument [null].');
 			$this->entity = $this->table->getEntity($arguments, $this->table->primaryKeyConstraint);
 		} else {
 			$this->entity = new Entity($this->table->columns);

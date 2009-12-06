@@ -8,12 +8,12 @@ class ColumnTest extends PHPUnit_Framework_TestCase {
 	protected function setUp() {
 	}
 	
-	public function testColumnInitialization() {
+	public function test_P_ColumnInitialization() {
 		$column = new Column('some_timestamp', 'timestamp', null, true, 'CURRENT_TIMESTAMP');
 		$this->assertEquals($column->name, 'some_timestamp');
 	}
 	
-	public function testColumnStatementTypes() {
+	public function test_P_ColumnStatementTypes() {
 		$allTypes = array();
 		$allTypes['i'] = array('tinyint', 'smallint', 'mediumint', 'int', 'bigint');
 		$allTypes['d'] = array('real', 'double', 'float', 'decimal');

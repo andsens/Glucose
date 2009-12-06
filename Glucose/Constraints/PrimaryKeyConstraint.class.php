@@ -20,7 +20,7 @@ class PrimaryKeyConstraint extends UniqueConstraint {
 	
 	public $deleteStatement;
 	
-	public function setUpdateStatement(array $columnNames, mysqli_stmt $statement) {
+	public function setUpdateStatement(array $columnNames, \mysqli_stmt $statement) {
 		$this->updateStatements[$this->createHash($columnNames)] = $statement;
 	}
 	

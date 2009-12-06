@@ -37,7 +37,7 @@ class EntityEngine {
 	
 	private function find(array $identifier, Constraints\UniqueConstraint $constraint, array &$entities) {
 		if(in_array(null, $identifier, true))
-			throw new E\InvalidIdentifierException('The identifier may not contain null');
+			throw new E\InvalidIdentifierException('The identifier may not contain null.');
 		$hash = $this->hashIdentifier($identifier);
 		if(array_key_exists($hash, $entities[$constraint->name]))
 			return $entities[$constraint->name][$hash];
@@ -55,7 +55,7 @@ class EntityEngine {
 			if($hash !== null && array_key_exists($hash, $this->modelEntities[$constraint->name]))
 				if($this->modelEntities[$constraint->name][$hash] !== $entity)
 					throw new E\ModelConstraintCollisionException(
-						'An entity with the same set of values for the unique constraint '.$constraint->name.' already exists in the model');
+						'An entity with the same set of values for the unique constraint '.$constraint->name.' already exists in the model.');
 			$newHashes[$constraint->name] = $hash;
 		}
 		foreach($newHashes as $constraintName => $hash) {
@@ -83,7 +83,7 @@ class EntityEngine {
 			if($hash !== null && array_key_exists($hash, $this->dbEntities[$constraint->name]))
 				if($this->dbEntities[$constraint->name][$hash] !== $entity)
 					throw new E\DatabaseConstraintCollisionException( // This is fatal and should not happen AT ALL. It means the database screwed up.
-						'An entity with the same set of values for the unique constraint '.$constraint->name.' already exists in the database');
+						'An entity with the same set of values for the unique constraint '.$constraint->name.' already exists in the database.');
 			$newHashes[$constraint->name] = $hash;
 		}
 		foreach($newHashes as $constraintName => $hash) {

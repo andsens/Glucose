@@ -6,8 +6,8 @@ $properties = array('hostname' => 'mysql.hostname',
                     'port'     => 'mysql.port',
                     'username' => 'mysql.username',
                     'password' => 'mysql.password',
-                    'schema'   => 'tests.schema',
-                    'comparisonSchema' => 'tests.schema.comparison');
+                    'schema'   => 'test.schema',
+                    'comparisonSchema' => 'test.schema.comparison');
 $matches = array();
 foreach($properties as $name => $property) {
 	preg_match('/'.str_replace('.', '\.', $property).'\s*=\s*(\w+)/', $buildProperties, $match);

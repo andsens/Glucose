@@ -6,7 +6,7 @@
  * @subpackage model.exceptions
  */
 namespace Glucose\Exceptions\Table;
-class InvalidUniqueConstraintException extends TableException {
+class InvalidUniqueConstraintException extends \InvalidArgumentException implements TableException {
 	
 }
 ?>

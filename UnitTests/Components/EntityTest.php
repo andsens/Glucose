@@ -13,13 +13,19 @@ class EntityTest extends PHPUnit_Framework_TestCase {
 		}
 	}
 	
-	public function testFieldsExistence() {
+	public function test_P_FieldExistence() {
 		$country = new Entity(self::$columns['countries']);
 		$this->assertNotNull($country->fields['id'], '`ID` field of country does not exist.');
 		$this->assertNotNull($country->fields['name'], '`name` field of country does not exist.');
 	}
 	
-	public function testGetValues() {
+	public function test_N_CannotAccessNonExistentFields() {
+		$country = new Entity(self::$columns['countries']);
+		$this->setExpectedException('OutOfBoundsException', 'The offset you are trying to access does not exist.');
+		$country->fields['blahrg'];
+	}
+	
+	public function test_P_GetValues() {
 		$denmark = new Entity(self::$columns['countries']);
 		$denmark->fields['id']->modelValue = 1;
 		$denmark->fields['name']->modelValue = 'Denmark';
@@ -28,7 +34,7 @@ class EntityTest extends PHPUnit_Framework_TestCase {
 		$this->assertEquals($expected, $denmark->getValues($columnsToRetrieve));
 	}
 	
-	public function testGetDBValues() {
+	public function test_P_GetDBValues() {
 		$denmark = new Entity(self::$columns['countries']);
 		$denmark->fields['id']->dbValue = 1;
 		$denmark->fields['name']->dbValue = 'Denmark';
@@ -36,7 +42,7 @@ class EntityTest extends PHPUnit_Framework_TestCase {
 		$this->assertEquals($expected, $denmark->getDBValues(self::$columns['countries']));
 	}
 	
-	public function testGetUpdateValues() {
+	public function test_P_GetUpdateValues() {
 		$aarhus = new Entity(self::$columns['cities']);
 		$aarhus->fields['id']->dbValue = 1;
 		$aarhus->fields['country']->dbValue = 2;
