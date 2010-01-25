@@ -9,5 +9,9 @@
  *
  */
 class City extends Glucose\Model {
+	static $className = 'City';
+	protected static function getTableName() {
+		return self::$inflector->tableize(get_class());
+	}
 }
 ?>

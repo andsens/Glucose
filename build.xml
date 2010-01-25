@@ -12,6 +12,12 @@
 		<antcall target="Run PHPUnit tests with code coverage" />
 		<antcall target="Drop test tables" />
 	</target>
+	<target name="tables">
+		<antcall target="Build test tables" />
+	</target>
+	<target name="tests">
+		<antcall target="Run PHPUnit tests" />
+	</target>
 	
 	<target name="Run PHPUnit tests">
 		<exec dir="${test.dir}" executable="${phpunit.executable}">

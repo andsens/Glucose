@@ -34,12 +34,16 @@ abstract class TableComparisonTestCase extends PHPUnit_Framework_TestCase {
 		
 		$updateFields = array();
 		foreach($updateValues as $field => $value)
-			$updateFields[] = "`$field` = '$value'";
+			if($value === null)
+				$updateFields[] = "`$field` = NULL";
+			else
+				$updateFields[] = "`$field` = '$value'";
 		$update = implode(', ', $updateFields);
 		$mysqli->query("
 			UPDATE `{$this->comparisonSchema}`.`$tableName`
 			SET $update
 			WHERE $where");
+		echo $mysqli->error;
 	}
 	
 	protected function deleteFrom($tableName, array $identifier) {
@@ -159,6 +163,8 @@ End;
 			foreach($rows as $row) {
 				$newRow = array();
 				foreach($columns as $column) {
+					if($row[$column] === null)
+						$row[$column] = 'NULL';
 					if(strlen($row[$column]) > $maxFieldLengths[$column]) {
 						$newRow[$column] = substr($row[$column], 0, max(0, $maxFieldLengths[$column]-3)).'...';
 					} else {

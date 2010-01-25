@@ -146,23 +146,23 @@ class TableTest extends TableComparisonTestCase {
 	
 	public function test_P_Refresh() {
 		$values = array(
-			'person' => 1,
-			'nickname' => 'andsens',
+			'person' => 2,
+			'nickname' => 'eclecnant',
 			'password' => sha1('secret'));
 		$users = self::$tables['users'];
-		$andsens = $users->newEntity();
-		$andsens->referenceCount++;
+		$eclecnant = $users->newEntity();
+		$eclecnant->referenceCount++;
 		foreach($values as $field => $value)
-			$andsens->fields[$field]->modelValue = $value;
+			$eclecnant->fields[$field]->modelValue = $value;
 		
 		$insertStart = time();
-		$andsens->referenceCount--;
+		$eclecnant->referenceCount--;
 		$this->insertInto('users', $values);
 		$insertTime = time()-$insertStart;
 		$this->assertTablesEqual('users', array('registered'));
-		$users->syncWithDB($andsens);
-		$comparisonRegistered = $this->selectSingle('users', 'registered', array('person'=>1));
-		$this->assertLessThanOrEqual($insertTime, strtotime($comparisonRegistered)-strtotime($andsens->fields['registered']->value));
+		$users->syncWithDB($eclecnant);
+		$comparisonRegistered = $this->selectSingle('users', 'registered', array('person'=>2));
+		$this->assertLessThanOrEqual($insertTime, strtotime($comparisonRegistered)-strtotime($eclecnant->fields['registered']->value));
 	}
 	
 	public function test_P_SelectUpdateNothing() {
@@ -187,12 +187,12 @@ class TableTest extends TableComparisonTestCase {
 	
 	public function test_P_SelectDelete1() {
 		$people = self::$tables['people'];
-		$anders = $people->select(array(1));
-		$anders->referenceCount++;
-		$anders->deleted = true;
-		$anders->referenceCount--;
+		$casper = $people->select(array(2));
+		$casper->referenceCount++;
+		$casper->deleted = true;
+		$casper->referenceCount--;
 		
-		$this->deleteFrom('people', array('id' => 1));
+		$this->deleteFrom('people', array('id' => 2));
 		$this->assertTablesEqual('people');
 	}
 	

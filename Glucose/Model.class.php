@@ -21,7 +21,7 @@ abstract class Model {
 	 * Works quite well.
 	 * @var Inflector
 	 */
-	private static $inflector;
+	protected static $inflector;
 	
 	/**
 	 * Table this model is associated with
@@ -35,6 +35,8 @@ abstract class Model {
 	 * @var Entity
 	 */
 	private $entity;
+	
+	protected static $className = 'Model';
 	
 	/**
 	 * Given a mysqli connection, the model connects to a database.
@@ -57,11 +59,20 @@ abstract class Model {
 	 * @param mixed $primaryKeys Set of primary key values depending on the tables definition, it varies in size.
 	 */
 	public function __construct() {
-		$this->initializeModel();
-		$className = get_class($this);
-		$this->table = self::$tables[$className];
+		if(static::$className != 'Model' && static::$className != get_class($this))
+			throw new E\UnexpectedValueException('There is a discrepancy between the actual class name (\''.get_class($this).'\') and the value of $className (\''.static::$className.'\').');
+		try {
+			$tableName = static::getTableName();
+		} catch(E\MethodExpectedException $e) {
+			$tableName = self::$inflector->tableize(get_class($this));
+		}
+		if(!array_key_exists($tableName, self::$tables))
+			self::$tables[$tableName] = new Table($tableName);
+		$this->table = self::$tables[$tableName];
 		$arguments = func_get_args();
-		if(count($arguments) > 0) {
+		if(count($arguments) == 1 && $arguments[0] instanceof Entity) {
+			$this->entity = $arguments[0];
+		} elseif(count($arguments) > 0) {
 			if(count($this->table->primaryKeyConstraint->columns) != count($arguments))
 				throw new E\ConstructorArgumentException('Wrong argument count.');
 			if(in_array(null, $arguments, true))
@@ -70,44 +81,38 @@ abstract class Model {
 		} else {
 			$this->entity = $this->table->newEntity();
 		}
+		$this->entity->referenceCount++;
 	}
 	
-	/**
-	 * Initializes the class and maps it to a table.
-	 * The table schema depends on the currently selected database.
-	 */
-	private final function initializeModel() {
-		$className = get_class($this);
-		if(!array_key_exists($className, self::$tables)) {
-			$table = new Table(Model::$inflector->tableize($className));
-			self::$tables[$className] = $table;
+	public static function __callStatic($name, $arguments) {
+		if($name == 'getTableName')
+			throw new E\MethodExpectedException('The function Glucose\Model::getTableName() cannot be called from a static context unless implemented in a subclass.');
+		if(substr($name, 0, 6) == 'initBy') {
+			try {
+				if(static::$className == 'Model')
+					throw new E\VariableExpectedException('In order to initialize entities by unique identifiers, you will have to add the static variable $className.');
+				$table = self::$tables[static::getTableName()];
+			} catch(E\MethodExpectedException $e) {
+				$table = self::$tables[self::$inflector->tableize(static::$className)];
+			}
+			foreach($table->uniqueConstraints as $constraint) {
+				$camelized = array();
+				foreach($constraint->columns as $column)
+					$camelized[] = self::$inflector->camelize($column->name);
+				if('initBy'.implode('And', $camelized) == $name)
+					if(count($constraint->columns) == count($arguments))
+						return new static::$className($table->select($arguments, $constraint));
+					else
+						$requiredNumberOfArguments = count($constraint->columns);
+			}
+			if(isset($requiredNumberOfArguments))
+				throw new E\InitializationArgumentException('The function \''.$name.'\' was called with '.count($arguments).' arguments but requires '.$requiredNumberOfArguments.'.');
 		}
-	}
-	
-	/**
-	 * Creates the model in the table and maps it to the new entry.
-	 * @todo Check for duplicate key error
-	 */
-	private final function createModel() {
-		try {
-			$this->table->insertIntoDB($this->entity);
-		} catch(MySQLDuplicateEntryException $exception) {
-			throw new E\DuplicateEntityException($exception->getMessage());
-		}
-	}
-	
-	private final function deleteModel() {
-		try {
-			$this->table->delete($this->getDatabasePrimaryKeyValues());
-			$this->entity->deleted = true;
-		} catch(NonExistentEntityException $exception) {
-			throw new E\UndefinedPrimaryKeyException(
-				'The primary key you specified is not represented in the database.');
-		}
+		throw new E\UndefinedMethodException('Call to undefined method \''.$name.'\'.');
 	}
 	
 	public function delete() {
-		$this->entity->delete = true;
+		$this->entity->deleted = true;
 	}
 	
 	/**
@@ -117,11 +122,8 @@ abstract class Model {
 	 * @param mixed $value Value of the field
 	 */
 	public function __set($name, $value) {
-		if($this->entity->delete)
-			throw new E\EntityDeletedException('This entity has been deleted. You cannot modify its fields any longer.');
 		$name = Model::$inflector->underscore($name);
-		if(!isset($this->entity->fields[$name]))
-			throw new E\UndefinedFieldException('The field you specified does not exists.');
+		$this->canModify($name);
 		$this->entity->fields[$name]->modelValue = $value;
 		$this->table->updateIdentifiers($this->entity);
 	}
@@ -133,11 +135,8 @@ abstract class Model {
 	 * @return mixed Value of the field
 	 */
 	public function __get($name) {
-		if($this->entity->delete)
-			throw new E\EntityDeletedException('This entity has been deleted. You cannot read its fields any longer.');
 		$name = Model::$inflector->underscore($name);
-		if(!isset($this->entity->fields[$name]))
-			throw new E\UndefinedFieldException('The field you specified does not exists.');
+		$this->canRead($name);
 		if($this->entity->fields[$name]->updateModel)
 			$this->table->syncWithDB($this->entity, $this->entity->fields[$name]);
 		return $this->entity->fields[$name]->value;
@@ -151,8 +150,8 @@ abstract class Model {
 	 * @return bool Wether the field is set
 	 */
 	public function __isset($name) {
-		if($this->entity->delete)
-			throw new E\EntityDeletedException('This entity has been deleted. You cannot read its fields any longer.');
+		$name = Model::$inflector->underscore($name);
+		$this->canRead($name);
 		return isset($this->entity->fields[$name]->value);
 	}
 	
@@ -162,9 +161,23 @@ abstract class Model {
 	 * @param string $name Name of the field
 	 */
 	public function __unset($name) {
-		if($this->entity->delete)
-			throw new E\EntityDeletedException('This entity has been deleted. You cannot modify its fields any longer.');
+		$name = Model::$inflector->underscore($name);
+		$this->canModify($name);
 		unset($this->entity->fields[$name]->value);
+	}
+	
+	private function canRead($name) {
+		if($this->entity->deleted)
+			throw new E\EntityDeletedException('This entity has been deleted. You can no longer read its fields.');
+		if(!isset($this->entity->fields[$name]))
+			throw new E\UndefinedFieldException('The field \''.$name.'\' does not exists.');
+	}
+	
+	private function canModify($name) {
+		if($this->entity->deleted)
+			throw new E\EntityDeletedException('This entity has been deleted. You can no longer read its fields.');
+		if(!isset($this->entity->fields[$name]))
+			throw new E\UndefinedFieldException('The field \''.$name.'\' does not exists.');
 	}
 	
 	/**
@@ -172,14 +185,7 @@ abstract class Model {
 	 * @ignore
 	 */
 	public final function __destruct() {
-		$this->entity->instanceCount--;
-		if($this->entity->instanceCount == 0) {
-			if($this->entity->updateOnDestruct)
-				$this->forceUpdate();
-			if(isset($this->entity->hash))
-				unset(self::$entities[$this->className][$this->entity->hash]);
-		}
-			
+		$this->entity->referenceCount--;
 	}
 }
 ?>

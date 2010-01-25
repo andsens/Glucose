@@ -6,7 +6,7 @@
  * @subpackage glucose.exceptions.user
  */
 namespace Glucose\Exceptions\User;
-class ConstructorArgumentException extends \InvalidArgumentException implements ArgumentException {
+interface ArgumentException extends UserException {
 	
 }
 ?>
