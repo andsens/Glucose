@@ -52,6 +52,14 @@ class Entity implements \SplSubject {
 		return $values;
 	}
 	
+	public function getRefreshColumnNames() {
+		$columns = array();
+		foreach($this->fields as $name => $field)
+			if($field->updateModel)
+				$columns[] = $name;
+		return $columns;
+	}
+	
 	public function dbUpdated() {
 		foreach($this->fields as $field)
 			$field->dbUpdated();

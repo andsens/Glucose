@@ -7,13 +7,13 @@ class TableTest extends TableComparisonTestCase {
 	private static $tables;
 	private static $mysqli;
 	
-	public static function setUpBeforeClass() {
-	}
-	
 	protected function setUp() {
+		$this->comparisonSchema = $GLOBALS['comparisonSchema'];
+		$this->actualSchema = $GLOBALS['schema'];
+		
 		self::$mysqli = $GLOBALS['mysqli'];
 		self::$tables = array();
-		foreach(array('countries', 'cities', 'people') as $tableName) {
+		foreach(array('countries', 'cities', 'people', 'users') as $tableName) {
 			self::$tables[$tableName] = new Glucose\Table($tableName);
 		}
 		self::$mysqli->query('START TRANSACTION;');
@@ -21,37 +21,6 @@ class TableTest extends TableComparisonTestCase {
 	
 	protected function getConnection() {
 		return self::$mysqli;
-	}
-	
-	public function insertInto($tableName, array $values) {
-		$fields = '(`'.implode('`, `', array_keys($values)).'`)';
-		$values = "('".implode("', '", $values)."')";
-		self::$mysqli->query("INSERT INTO `{$GLOBALS['comparisonSchema']}`.`$tableName`
-		$fields VALUES $values");
-		return self::$mysqli->insert_id;
-	}
-	
-	public function update($tableName, array $identifier, array $updateValues) {
-		$whereFields = array();
-		foreach($identifier as $field => $value)
-			$whereFields[] = "`$field` = '$value'";
-		$where = implode(' AND ', $whereFields);
-		
-		$updateFields = array();
-		foreach($updateValues as $field => $value)
-			$updateFields[] = "`$field` = '$value'";
-		$update = implode(', ', $updateFields);
-		self::$mysqli->query("UPDATE `{$GLOBALS['comparisonSchema']}`.`$tableName`
-		SET $update WHERE $where");
-	}
-	
-	public function deleteFrom($tableName, array $identifier) {
-		$whereFields = array();
-		foreach($identifier as $field => $value)
-			$whereFields[] = "`$field` = '$value'";
-		$where = implode(' AND ', $whereFields);
-		
-		self::$mysqli->query("DELETE FROM `{$GLOBALS['comparisonSchema']}`.`$tableName` WHERE $where");
 	}
 	
 	public function test_N_NonExistentTable() {
@@ -131,8 +100,8 @@ class TableTest extends TableComparisonTestCase {
 			$copenhagen->fields[$field]->modelValue = $value;
 		$copenhagen->referenceCount--;
 		$insertID = $this->insertInto('cities', $values);
-		$this->assertEquals(self::$mysqli->insert_id, $copenhagen->fields['id']->value);
-		$this->assertTablesEqual($GLOBALS['comparisonSchema'], 'cities', $GLOBALS['schema'], 'cities');
+		$this->assertEquals($insertID, $copenhagen->fields['id']->value);
+		$this->assertTablesEqual('cities');
 	}
 	
 	public function test_P_Insert2() {
@@ -150,7 +119,7 @@ class TableTest extends TableComparisonTestCase {
 		$donaldDuck->referenceCount--;
 		$insertID = $this->insertInto('people', $values);
 		$this->assertEquals($insertID, $donaldDuck->fields['id']->value);
-		$this->assertTablesEqual($GLOBALS['comparisonSchema'], 'people', $GLOBALS['schema'], 'people');
+		$this->assertTablesEqual('people');
 	}
 	
 	public function test_P_SelectUpdate1() {
@@ -161,7 +130,7 @@ class TableTest extends TableComparisonTestCase {
 		$aarhus->referenceCount--;
 		
 		$this->update('cities', array('id' => 1), array('name' => 'Smilets by'));
-		$this->assertTablesEqual($GLOBALS['comparisonSchema'], 'cities', $GLOBALS['schema'], 'cities');
+		$this->assertTablesEqual('cities');
 	}
 	
 	public function test_P_SelectUpdate2() {
@@ -172,7 +141,28 @@ class TableTest extends TableComparisonTestCase {
 		$anders->referenceCount--;
 		
 		$this->update('people', array('id' => 1), array('first_name' => ''));
-		$this->assertTablesEqual($GLOBALS['comparisonSchema'], 'people', $GLOBALS['schema'], 'people');
+		$this->assertTablesEqual('people');
+	}
+	
+	public function test_P_Refresh() {
+		$values = array(
+			'person' => 1,
+			'nickname' => 'andsens',
+			'password' => sha1('secret'));
+		$users = self::$tables['users'];
+		$andsens = $users->newEntity();
+		$andsens->referenceCount++;
+		foreach($values as $field => $value)
+			$andsens->fields[$field]->modelValue = $value;
+		
+		$insertStart = time();
+		$andsens->referenceCount--;
+		$this->insertInto('users', $values);
+		$insertTime = time()-$insertStart;
+		$this->assertTablesEqual('users', array('registered'));
+		$users->syncWithDB($andsens);
+		$comparisonRegistered = $this->selectSingle('users', 'registered', array('person'=>1));
+		$this->assertLessThanOrEqual($insertTime, strtotime($comparisonRegistered)-strtotime($andsens->fields['registered']->value));
 	}
 	
 	public function test_P_SelectUpdateNothing() {
@@ -181,7 +171,7 @@ class TableTest extends TableComparisonTestCase {
 		$anders->referenceCount++;
 		$anders->referenceCount--;
 		
-		$this->assertTablesEqual($GLOBALS['comparisonSchema'], 'people', $GLOBALS['schema'], 'people');
+		$this->assertTablesEqual('people');
 	}
 	
 	public function test_P_SelectUpdate_UpdateIdentifier_Select() {
@@ -203,7 +193,7 @@ class TableTest extends TableComparisonTestCase {
 		$anders->referenceCount--;
 		
 		$this->deleteFrom('people', array('id' => 1));
-		$this->assertTablesEqual($GLOBALS['comparisonSchema'], 'people', $GLOBALS['schema'], 'people');
+		$this->assertTablesEqual('people');
 	}
 	
 	public function test_P_SelectDelete2() {
@@ -214,7 +204,7 @@ class TableTest extends TableComparisonTestCase {
 		$hamburg->referenceCount--;
 		
 		$this->deleteFrom('cities', array('id' => 2));
-		$this->assertTablesEqual($GLOBALS['comparisonSchema'], 'cities', $GLOBALS['schema'], 'cities');
+		$this->assertTablesEqual('cities');
 	}
 	
 	public function test_P_DeleteAnonymous() {
@@ -226,7 +216,7 @@ class TableTest extends TableComparisonTestCase {
 		$copenhagen->fields['postal_code']->modelValue = 1000;
 		$copenhagen->deleted = true;
 		$copenhagen->referenceCount--;
-		$this->assertTablesEqual($GLOBALS['comparisonSchema'], 'cities', $GLOBALS['schema'], 'cities');
+		$this->assertTablesEqual('cities');
 	}
 	
 	public function test_N_Collision() {
@@ -239,11 +229,11 @@ class TableTest extends TableComparisonTestCase {
 		$this->setExpectedException('Glucose\Exceptions\Entity\ModelConstraintCollisionException',
 		'An entity with the same set of values for the unique constraint UNIQUE_countries__name already exists in the model.');
 		$countries->updateIdentifiers($uganda2);
-		$this->assertTablesEqual($GLOBALS['comparisonSchema'], 'countries', $GLOBALS['schema'], 'countries');
+		$this->assertTablesEqual('countries');
 	}
 	
 	protected function tearDown() {
-		$GLOBALS['mysqli']->query('ROLLBACK;');
+		self::$mysqli ->query('ROLLBACK;');
 	}
 }
 ?>

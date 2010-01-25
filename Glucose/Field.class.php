@@ -121,13 +121,16 @@ class Field {
 	 */
 	public function dbUpdated() {
 		$this->updateDB = false;
-		// TODO: What about other timestamp types with null values?
-		if($this->column->type == 'timestamp' && strtoupper($this->column->default) == 'CURRENT_TIMESTAMP' && !$this->updateDB)
-			$this->updateModel = true;
-		elseif(!isset($this->value))
-			$this->dbValue = $this->column->default;
-		else
+		if(!isset($this->value)) {
+			// TODO: What about other timestamp types with null values?
+			if($this->column->type == 'timestamp'
+			&& strtoupper($this->column->default) == 'CURRENT_TIMESTAMP')
+				$this->updateModel = true;
+			else
+				$this->dbValue = $this->column->default;
+		} else {
 			$this->dbValue = $this->value;
+		}
 	}
 }
 ?>

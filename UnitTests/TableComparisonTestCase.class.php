@@ -5,11 +5,72 @@ abstract class TableComparisonTestCase extends PHPUnit_Framework_TestCase {
 	
 	private static $columnRetrievalStatement;
 	
+	protected $comparisonSchema;
+	protected $actualSchema;
+	
 	/**
 	 *
 	 * @return mysqli
 	 */
 	abstract protected function getConnection();
+	
+	protected function insertInto($tableName, array $values) {
+		$mysqli = $this->getConnection();
+		$fields = '(`'.implode('`, `', array_keys($values)).'`)';
+		$values = "('".implode("', '", $values)."')";
+		$mysqli->query("
+			INSERT INTO `{$this->comparisonSchema}`.`$tableName`
+			$fields
+			VALUES $values");
+		return $mysqli->insert_id;
+	}
+	
+	protected function update($tableName, array $identifier, array $updateValues) {
+		$mysqli = $this->getConnection();
+		$whereFields = array();
+		foreach($identifier as $field => $value)
+			$whereFields[] = "`$field` = '$value'";
+		$where = implode(' AND ', $whereFields);
+		
+		$updateFields = array();
+		foreach($updateValues as $field => $value)
+			$updateFields[] = "`$field` = '$value'";
+		$update = implode(', ', $updateFields);
+		$mysqli->query("
+			UPDATE `{$this->comparisonSchema}`.`$tableName`
+			SET $update
+			WHERE $where");
+	}
+	
+	protected function deleteFrom($tableName, array $identifier) {
+		$mysqli = $this->getConnection();
+		$whereFields = array();
+		foreach($identifier as $field => $value)
+			$whereFields[] = "`$field` = '$value'";
+		$where = implode(' AND ', $whereFields);
+		
+		$mysqli->query("
+			DELETE
+			FROM `{$this->comparisonSchema}`.`$tableName`
+			WHERE $where");
+	}
+	
+	protected function selectSingle($tableName, $columnName, $identifier) {
+		$mysqli = $this->getConnection();
+		$whereFields = array();
+		foreach($identifier as $field => $value)
+			$whereFields[] = "`$field` = '$value'";
+		$where = implode(' AND ', $whereFields);
+		$result = $mysqli->query("
+			SELECT `$columnName`
+			FROM `{$this->comparisonSchema}`.`$tableName`
+			WHERE $where");
+		if($result->num_rows == 0)
+			return null;
+		$row = $result->fetch_array(MYSQLI_NUM);
+		$result->free();
+		return $row[0];
+	}
 	
 	private final function prepareColumnRetrievalStatement() {
 		$mysqli = $this->getConnection();
@@ -23,25 +84,27 @@ End;
 		self::$columnRetrievalStatement = $mysqli->prepare($sql);
 	}
 	
-	protected function assertTablesEqual($expectedDB, $expectedTable, $actualDB, $actualTable) {
+	protected function assertTablesEqual($table, array $excludedColumns = array()) {
 		if(!isset(self::$columnRetrievalStatement))
 			$this->prepareColumnRetrievalStatement();
 		$statement = self::$columnRetrievalStatement;
 		
-		$statement->bind_param('ss', $expectedDB, $expectedTable);
+		$statement->bind_param('ss', $this->comparisonSchema, $table);
 		$statement->bind_result($columnName);
 		$statement->execute();
 		$expectedColumns = array();
 		while($statement->fetch())
-			$expectedColumns[] = $columnName;
+			if(!in_array($columnName, $excludedColumns))
+				$expectedColumns[] = $columnName;
 		$statement->free_result();
 		
-		$statement->bind_param('ss', $actualDB, $actualTable);
+		$statement->bind_param('ss', $this->actualSchema, $table);
 		$statement->bind_result($columnName);
 		$statement->execute();
 		$actualColumns = array();
 		while($statement->fetch())
-			$actualColumns[] = $columnName;
+			if(!in_array($columnName, $excludedColumns))
+				$actualColumns[] = $columnName;
 		$statement->free_result();
 		
 		if($expectedColumns !== $actualColumns)
@@ -52,10 +115,10 @@ End;
 SELECT Origin, COUNT(*) AS 'Rows', {$columns}
 FROM (
 	SELECT *, 'expected' AS 'Origin'
-	FROM `{$expectedDB}`.`{$expectedTable}`
+	FROM `{$this->comparisonSchema}`.`{$table}`
 	UNION
 	SELECT *, 'actual' AS 'Origin'
-	FROM `{$actualDB}`.`{$actualTable}`
+	FROM `{$this->actualSchema}`.`{$table}`
 ) comparison
 GROUP BY {$columns}
 HAVING `rows` != 2
@@ -106,7 +169,7 @@ End;
 			}
 			$excess = implode("\n	", $excessRows);
 			$failureDescription = <<<End
-Failed asserting that `{$expectedDB}`.`{$expectedTable}` and `{$actualDB}`.`{$actualTable}` are equal.
+Failed asserting that `{$this->comparisonSchema}`.`{$table}` and `{$this->actualSchema}`.`{$table}` are equal.
 Excess rows:
 	{$header}
 	{$excess}

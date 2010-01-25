@@ -304,24 +304,43 @@ End;
 		}
 		$constraintStatementTypes = $constraint->statementTypes;
 		$statementValues = array(&$constraintStatementTypes);
-		foreach($uniqueValues as $key => $value)
-			$statementValues[] = &$uniqueValues[$key];
+		foreach($uniqueValues as &$value)
+			$statementValues[] = &$value;
 		call_user_func_array(array(&$constraint->selectStatement, 'bind_param'), $statementValues);
 		$constraint->selectStatement->execute();
 		if(self::$mysqli->errno > 0) throw MySQLErrorException::findClass(self::$mysqli);
 		$constraint->selectStatement->store_result();
 		
 		$values = null;
-		$numberOfRowsReturned = $constraint->selectStatement->num_rows();
+		$numberOfRowsReturned = $constraint->selectStatement->num_rows;
 		if($numberOfRowsReturned == 1) {
 			$metadata = $constraint->selectStatement->result_metadata();
 			$fields = array();
 			$values = array();
-			while ($field = $metadata->fetch_field())
+			while($field = $metadata->fetch_field())
 				$fields[] = &$values[$field->name];
 			call_user_func_array(array(&$constraint->selectStatement, 'bind_result'), $fields);
 			$constraint->selectStatement->fetch();
 			$constraint->selectStatement->free_result();
+		
+			if($constraint != $this->primaryKeyConstraint) {
+				$primaryKeyValues = array();
+				foreach($this->primaryKeyConstraint->columns as $column)
+					$primaryKeyValues[] = $values[$column->name];
+				$entity = $this->entityEngine->findDB($primaryKeyValues, $this->primaryKeyConstraint);
+			}
+			if($entity === null)
+				$entity = $this->newEntity();
+			foreach($constraint->columns as $index => $column)
+				if(!isset($entity->fields[$column->name]->value))
+					$entity->fields[$column->name]->dbValue = $uniqueValues[$index];
+			foreach($values as $fieldName => $fieldValue)
+				if(!isset($entity->fields[$fieldName]->value))
+					$entity->fields[$fieldName]->dbValue = $fieldValue;
+			$entity->inDB = true;
+			$this->entityEngine->updateIdentifiersDB($entity);
+			$this->entityEngine->updateIdentifiersModel($entity);
+			return $entity;
 		} elseif($numberOfRowsReturned < 1) {
 			$constraint->selectStatement->free_result();
 			throw new E\NonExistentEntityException('The values you specified do not match any entry in the table.');
@@ -329,25 +348,54 @@ End;
 			$constraint->selectStatement->free_result();
 			throw new E\MultipleEntitiesException('The values you specified match two or more entries in the table.');
 		}
-		
-		if($constraint != $this->primaryKeyConstraint) {
-			$primaryKeyValues = array();
-			foreach($this->primaryKeyConstraint->columns as $column)
-				$primaryKeyValues[] = $values[$column->name];
-			$entity = $this->entityEngine->findDB($primaryKeyValues, $this->primaryKeyConstraint);
+	}
+	
+	private function refresh(Entity $entity) {
+		$refreshColumnNames = $entity->getRefreshColumnNames();
+		if(empty($refreshColumnNames))
+			return;
+		$constraint = $this->primaryKeyConstraint;
+		if($constraint->getRefreshStatement($refreshColumnNames) === null) {
+			$sql = 'SELECT `'.implode('`, `', $refreshColumnNames).'` ';
+			$sql .= 'FROM `'.$this->databaseName.'`.`'.$this->tableName.'` ';
+			$sql .= 'WHERE `'.implode('` = ? AND `', $constraint->columns).'` = ?';
+			$constraint->setRefreshStatement($refreshColumnNames, self::$mysqli->prepare($sql));
+			if(self::$mysqli->errno > 0) throw MySQLErrorException::findClass(self::$mysqli);
 		}
-		if($entity === null)
-			$entity = $this->newEntity();
-		foreach($constraint->columns as $index => $column)
-			if(!isset($entity->fields[$column->name]->value))
-				$entity->fields[$column->name]->dbValue = $uniqueValues[$index];
-		foreach($values as $fieldName => $fieldValue)
-			if(!isset($entity->fields[$fieldName]->value))
-				$entity->fields[$fieldName]->dbValue = $fieldValue;
-		$entity->inDB = true;
-		$this->entityEngine->updateIdentifiersDB($entity);
-		$this->entityEngine->updateIdentifiersModel($entity);
-		return $entity;
+		$refreshStatement = $constraint->getRefreshStatement($refreshColumnNames);
+		
+		$constraintStatementTypes = $constraint->statementTypes;
+		$statementValues = array(&$constraintStatementTypes);
+		$entityValues = array();
+		foreach($constraint->columns as $column) {
+			$entityValues[$column->name] = $entity->fields[$column->name]->value;
+			$statementValues[] = &$entityValues[$column->name];
+		}
+		call_user_func_array(array(&$refreshStatement, 'bind_param'), $statementValues);
+		$refreshStatement->execute();
+		if(self::$mysqli->errno > 0) throw MySQLErrorException::findClass(self::$mysqli);
+		$refreshStatement->store_result();
+		
+		$numberOfRowsReturned = $refreshStatement->num_rows;
+		if($numberOfRowsReturned == 1) {
+			$metadata = $refreshStatement->result_metadata();
+			$fields = array();
+			$values = array();
+			while($field = $metadata->fetch_field())
+				$fields[] = &$values[$field->name];
+			call_user_func_array(array(&$refreshStatement, 'bind_result'), $fields);
+			$refreshStatement->fetch();
+			$refreshStatement->free_result();
+		} elseif($numberOfRowsReturned < 1) {
+			$refreshStatement->free_result();
+			throw new E\NonExistentEntityException('The values you specified do not match any entry in the table.');
+		} else {
+			$refreshStatement->free_result();
+			throw new E\MultipleEntitiesException('The values you specified match two or more entries in the table.');
+		}
+		
+		foreach($values as $columnName => $value)
+			$entity->fields[$columnName]->dbValue = $value;
 	}
 	
 	/**
@@ -398,7 +446,6 @@ End;
 	}
 	
 	private function deleteFromDB(Entity $entity) {
-		// Make this prepared!
 		if(!isset($this->primaryKeyConstraint->deleteStatement)) {
 			$sql = 'DELETE FROM `'.$this->databaseName.'`.`'.$this->tableName.'` ';
 			$sql .= 'WHERE `'.implode('` = ? AND `', $this->primaryKeyConstraint->columns).'` = ?';
@@ -421,6 +468,23 @@ End;
 		$entity->inDB = false;
 	}
 	
+	public function syncWithDB(Entity $entity, Field $requiredField = null) {
+		if($entity->inDB) {
+			if($entity->deleted) {
+				$this->deleteFromDB($entity);
+			} else {
+				$this->updateDB($entity);
+				$this->refresh($entity);
+			}
+		} else {
+			if(!$entity->deleted) {
+				$this->insertIntoDB($entity);
+				if($requiredField !== null && $requiredField->updateModel)
+					$this->refresh($entity);
+			}
+		}
+	}
+	
 	public function newEntity() {
 		$entity = new Entity($this->columns);
 		$entity->attach($this);
@@ -435,14 +499,7 @@ End;
 		if($subject instanceof Entity) {
 			$entity = $subject;
 			if($entity->referenceCount == 0) {
-				if($entity->inDB)
-					if($entity->deleted)
-						$this->deleteFromDB($entity);
-					else
-						$this->updateDB($entity);
-				else
-					if(!$entity->deleted)
-						$this->insertIntoDB($entity);
+				$this->syncWithDB($entity);
 				$this->entityEngine->dereference($entity);
 			}
 		}

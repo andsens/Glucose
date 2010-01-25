@@ -31,12 +31,5 @@ class PrimaryKeyConstraint extends UniqueConstraint {
 		else
 			return null;
 	}
-	
-	private function createHash(array $columnNames) {
-		$compoundHash = '';
-		foreach($columnNames as $columnName)
-			$compoundHash .= sha1($columnName);
-		return sha1($compoundHash);
-	}
 }
 ?>

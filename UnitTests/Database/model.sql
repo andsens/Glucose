@@ -60,6 +60,27 @@ CREATE  TABLE IF NOT EXISTS `people` (
 ENGINE = InnoDB;
 
 
+-- -----------------------------------------------------
+-- Table `users`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `users` ;
+
+CREATE  TABLE IF NOT EXISTS `users` (
+  `person` INT NOT NULL ,
+  `nickname` VARCHAR(16) NOT NULL ,
+  `password` CHAR(40) NOT NULL ,
+  `registered` TIMESTAMP NOT NULL ,
+  `last_login` TIMESTAMP NULL ,
+  PRIMARY KEY (`person`) ,
+  INDEX `FK_users__person` (`person` ASC) ,
+  CONSTRAINT `FK_users__person`
+    FOREIGN KEY (`person` )
+    REFERENCES `people` (`id` )
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
 
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;

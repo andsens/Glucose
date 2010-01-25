@@ -15,5 +15,26 @@ class UniqueConstraint extends Constraint {
 	 * @var MySQLi_STMT
 	 */
 	public $selectStatement;
+	
+	private $refreshStatements = array();
+	
+	public function setRefreshStatement(array $columnNames, \mysqli_stmt $statement) {
+		$this->refreshStatements[$this->createHash($columnNames)] = $statement;
+	}
+	
+	public function getRefreshStatement(array $columnNames) {
+		$hash = $this->createHash($columnNames);
+		if(array_key_exists($hash, $this->refreshStatements))
+			return $this->refreshStatements[$hash];
+		else
+			return null;
+	}
+	
+	protected function createHash(array $columnNames) {
+		$compoundHash = '';
+		foreach($columnNames as $columnName)
+			$compoundHash .= sha1($columnName);
+		return sha1($compoundHash);
+	}
 }
 ?>

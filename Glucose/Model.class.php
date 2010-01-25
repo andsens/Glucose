@@ -66,9 +66,9 @@ abstract class Model {
 				throw new E\ConstructorArgumentException('Wrong argument count.');
 			if(in_array(null, $arguments, true))
 				throw new E\ConstructorArgumentException('Illegal argument [null].');
-			$this->entity = $this->table->getEntity($arguments, $this->table->primaryKeyConstraint);
+			$this->entity = $this->table->select($arguments, $this->table->primaryKeyConstraint);
 		} else {
-			$this->entity = new Entity($this->table->columns);
+			$this->entity = $this->table->newEntity();
 		}
 	}
 	
@@ -85,86 +85,14 @@ abstract class Model {
 	}
 	
 	/**
-	 * Forces an update of the object and either updates the table or inserts the object into it.
-	 */
-	private final function forceUpdate() {
-		if($this->entity->shouldBeInDB)
-			if(!$this->entity->delete)
-				$this->updateDB();
-			else
-				$this->deleteModel();
-		else
-			if(!$this->entity->delete)
-				$this->createModel();
-	}
-	
-	/**
 	 * Creates the model in the table and maps it to the new entry.
 	 * @todo Check for duplicate key error
 	 */
 	private final function createModel() {
-		$insertValues = array();
-		$insertTypes = '';
-		foreach($this->entity->fields as $field) {
-			if(!isset($field->value))
-				$insertValues[] = $field->column->insertDefault; // TODO: STUFF
-			else
-				$insertValues[] = $field->value;
-			$insertTypes .= $field->column->statementType;
-		}
 		try {
-			$insertID = $this->table->insert($insertValues, $insertTypes);
-			foreach($this->entity->fields as $field)
-				if($field->updateModel && $field->column == $this->table->primaryKeyConstraint->autoIncrementColumn)
-					$field->dbValue = $insertID;
-				else
-					$field->dbUpdated();
-			$this->entity->updateIdentifiers();
-			$this->entity->existsInDB = true;
+			$this->table->insertIntoDB($this->entity);
 		} catch(MySQLDuplicateEntryException $exception) {
 			throw new E\DuplicateEntityException($exception->getMessage());
-		}
-	}
-	
-	/**
-	 * Updates the database by saving fields,
-	 * that have been changed since the last update.
-	 * @todo Check for PK defined, with num affected rows
-	 */
-	private final function updateDB() {
-		try {
-			$this->table->update($this>entity);
-			foreach($this->entity->fields as $field)
-				$field->dbUpdated();
-			$this->entity->updateIdentifiers();
-			$this->entity->existsInDB = true;
-		} catch(NoAffectedRowException $exception) {
-			throw new E\UndefinedPrimaryKeyException(
-				'The primary key you specified is not represented in the database or the row already had the same values as the new values.');
-		}
-	}
-	
-	/**
-	 * Updates the object from the database and overwrites fields with fresh values from the table,
-	 * if they have not explicitly been set by the user.
-	 * @param UniqueConstraint $constraint Defines which constraint should be used to select the entry from the table
-	 */
-	private final function updateModel() {
-		foreach($this->entity->fields as $field) {
-			if($field->updateModel) {
-				try {
-					$newValues = $this->table->select($this->entity->getDBValues($this->table->primaryKeyConstraint->columns));
-					foreach($newValues as $columnName => $value)
-						if($this->entity->fields[$columnName]->updateModel)
-							$this->entity->fields[$columnName]->dbValue = $value;
-					$this->entity->updateIdentifiers();
-					$this->entity->existsInDB = true;
-				} catch(NonExistentEntityException $exception) {
-					throw new E\UndefinedPrimaryKeyException(
-						'The primary key you specified is not represented in the database.');
-				}
-				break;
-			}
 		}
 	}
 	
@@ -195,7 +123,7 @@ abstract class Model {
 		if(!isset($this->entity->fields[$name]))
 			throw new E\UndefinedFieldException('The field you specified does not exists.');
 		$this->entity->fields[$name]->modelValue = $value;
-		$this->entity->updateIdentifiers();
+		$this->table->updateIdentifiers($this->entity);
 	}
 	
 	/**
@@ -210,16 +138,8 @@ abstract class Model {
 		$name = Model::$inflector->underscore($name);
 		if(!isset($this->entity->fields[$name]))
 			throw new E\UndefinedFieldException('The field you specified does not exists.');
-		if($this->entity->fields[$name]->updateModel) {
-			if($this->entity->shouldBeInDB) {
-				$this->updateModel();
-			} else {
-				$this->createModel();
-				if($this->entity->fields[$name]->updateModel) {
-					$this->updateModel();
-				}
-			}
-		}
+		if($this->entity->fields[$name]->updateModel)
+			$this->table->syncWithDB($this->entity, $this->entity->fields[$name]);
 		return $this->entity->fields[$name]->value;
 	}
 	

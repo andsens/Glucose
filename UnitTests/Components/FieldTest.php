@@ -39,7 +39,6 @@ class FieldTest extends PHPUnit_Framework_TestCase {
 	public function test_P_UpdateModelFlag() {
 		$column = new Column('some_timestamp', 'timestamp', null, true, 'CURRENT_TIMESTAMP');
 		$field = new Field($column);
-		$field->dbValue = new DateTime();
 		$field->dbUpdated();
 		$this->assertTrue($field->updateModel);
 	}
