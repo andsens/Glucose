@@ -166,18 +166,16 @@ End;
 		$this->columns = array();
 		$this->uniqueConstraints = array();
 		$this->foreignKeyConstraints = array();
-
-		self::$tableInformationQuery->bind_param('ss', $this->databaseName, $this->tableName);
-		self::$tableInformationQuery->execute();
-		if(self::$mysqli->errno > 0) throw MySQLErrorException::findClass(self::$mysqli);
+		
+		$this->bindAndExecute(self::$tableInformationQuery, 'ss', array($this->databaseName, $this->tableName));
 		self::$tableInformationQuery->store_result();
 		if(self::$tableInformationQuery->num_rows() == 0)
 			throw new E\MissingTableException("The table '".$this->tableName."' does not exist.");
-
+			
 		self::$tableInformationQuery->bind_result($name, $ordinalPosition, $defaultValue, $isNullable, $type, $maxLength, $extra,
 		$constraintType, $constraintName, $referencedTableName, $referencedColumnName, $updateRule, $deleteRule,
 		$refererConstraintName, $refererTableName, $refererColumnName);
-
+		
 		while(self::$tableInformationQuery->fetch()) {
 			if(!isset($this->columns[$name]))
 				$this->columns[$name] = new Column((string) $name, (string) $type, (integer) $maxLength, (boolean) $isNullable == 'NO', $defaultValue);
@@ -210,7 +208,7 @@ End;
 		if(!isset($this->primaryKeyConstraint))
 			throw new E\MissingPrimaryKeyConstraintException('The table "'.$this->tableName.'" does not have any primary key constraints.');
 	}
-
+	
 	/**
 	 * Magic method, which returns various properties of the table.
 	 * @ignore
@@ -250,6 +248,15 @@ End;
 		if(self::$mysqli->errno > 0) throw MySQLErrorException::findClass(self::$mysqli);
 	}
 	
+	private function bindAndExecute(\mysqli_stmt $statement, $types, array $values) {
+		$statementValues = array(&$types);
+		foreach($values as &$value)
+			$statementValues[] = &$value;
+		call_user_func_array(array(&$statement, 'bind_param'), $statementValues);
+		$statement->execute();
+		if(self::$mysqli->errno > 0) throw MySQLErrorException::findClass(self::$mysqli);
+	}
+	
 	/**
 	 * INSERTs a set of data into the table.
 	 * @param array $insertValues Full set of values as an indexed array
@@ -259,13 +266,7 @@ End;
 		$statementTypes = '';
 		foreach($this->columns as $column)
 			$statementTypes .= $column->statementType;
-		$statementValues = array(&$statementTypes);
-		$insertValues = $entity->getValues($this->columns);
-		foreach($insertValues as $key => $value)
-			$statementValues[] = &$insertValues[$key];
-		call_user_func_array(array(&$this->insertStatement, 'bind_param'), $statementValues);
-		$this->insertStatement->execute();
-		if(self::$mysqli->errno > 0) throw MySQLErrorException::findClass(self::$mysqli);
+		$this->bindAndExecute($this->insertStatement, $statementTypes, $entity->getValues($this->columns));
 		if(self::$mysqli->insert_id > 0)
 			$entity->fields[$this->primaryKeyConstraint->autoIncrementColumn->name]->dbValue = self::$mysqli->insert_id;
 		$entity->dbUpdated();
@@ -300,13 +301,7 @@ End;
 			$constraint->selectStatement = self::$mysqli->prepare($sql);
 			if(self::$mysqli->errno > 0) throw MySQLErrorException::findClass(self::$mysqli);
 		}
-		$constraintStatementTypes = $constraint->statementTypes;
-		$statementValues = array(&$constraintStatementTypes);
-		foreach($uniqueValues as &$value)
-			$statementValues[] = &$value;
-		call_user_func_array(array(&$constraint->selectStatement, 'bind_param'), $statementValues);
-		$constraint->selectStatement->execute();
-		if(self::$mysqli->errno > 0) throw MySQLErrorException::findClass(self::$mysqli);
+		$this->bindAndExecute($constraint->selectStatement, $constraint->statementTypes, $uniqueValues);
 		$constraint->selectStatement->store_result();
 		
 		$values = null;
@@ -362,16 +357,10 @@ End;
 		}
 		$refreshStatement = $constraint->getRefreshStatement($refreshColumnNames);
 		
-		$constraintStatementTypes = $constraint->statementTypes;
-		$statementValues = array(&$constraintStatementTypes);
 		$entityValues = array();
-		foreach($constraint->columns as $column) {
+		foreach($constraint->columns as $column)
 			$entityValues[$column->name] = $entity->fields[$column->name]->value;
-			$statementValues[] = &$entityValues[$column->name];
-		}
-		call_user_func_array(array(&$refreshStatement, 'bind_param'), $statementValues);
-		$refreshStatement->execute();
-		if(self::$mysqli->errno > 0) throw MySQLErrorException::findClass(self::$mysqli);
+		$this->bindAndExecute($refreshStatement, $constraint->statementTypes, $entityValues);
 		$refreshStatement->store_result();
 		
 		$numberOfRowsReturned = $refreshStatement->num_rows;
@@ -450,13 +439,10 @@ End;
 			$this->primaryKeyConstraint->deleteStatement = self::$mysqli->prepare($sql);
 			if(self::$mysqli->errno > 0) throw MySQLErrorException::findClass(self::$mysqli);
 		}
-		$constraintStatementTypes = $this->primaryKeyConstraint->statementTypes;
-		$statementValues = array(&$constraintStatementTypes);
-		foreach($entity->getDBValues($this->primaryKeyConstraint->columns) as $value)
-			$statementValues[] = &$value;
-		call_user_func_array(array(&$this->primaryKeyConstraint->deleteStatement, 'bind_param'), $statementValues);
-		$this->primaryKeyConstraint->deleteStatement->execute();
-		if(self::$mysqli->errno > 0) throw MySQLErrorException::findClass(self::$mysqli);
+		$this->bindAndExecute(
+			$this->primaryKeyConstraint->deleteStatement,
+			$this->primaryKeyConstraint->statementTypes,
+			$entity->getDBValues($this->primaryKeyConstraint->columns));
 		$numberOfRowsAffected = $this->primaryKeyConstraint->deleteStatement->affected_rows;
 		if($numberOfRowsAffected < 1) {
 			throw new E\NoAffectedRowException('The values you specified do not match any entry in the table.');
@@ -483,13 +469,7 @@ End;
 			$constraint->existenceStatement = self::$mysqli->prepare($sql);
 			if(self::$mysqli->errno > 0) throw MySQLErrorException::findClass(self::$mysqli);
 		}
-		$constraintStatementTypes = $constraint->statementTypes;
-		$statementValues = array(&$constraintStatementTypes);
-		foreach($uniqueValues as &$value)
-			$statementValues[] = &$value;
-		call_user_func_array(array(&$constraint->existenceStatement, 'bind_param'), $statementValues);
-		$constraint->existenceStatement->execute();
-		if(self::$mysqli->errno > 0) throw MySQLErrorException::findClass(self::$mysqli);
+		$this->bindAndExecute($constraint->existenceStatement, $constraint->statementTypes, $uniqueValues);
 		$constraint->existenceStatement->store_result();
 		$numberOfRowsReturned = $constraint->existenceStatement->num_rows;
 		$constraint->existenceStatement->free_result();
