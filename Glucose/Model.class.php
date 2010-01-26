@@ -9,6 +9,7 @@
  */
 namespace Glucose;
 use \Glucose\Exceptions\User as E;
+use \Glucose\Exceptions\Table as TE;
 abstract class Model {
 	/**
 	 * Associativ array of tables that have been initialized
@@ -77,7 +78,13 @@ abstract class Model {
 				throw new E\ConstructorArgumentException('Wrong argument count.');
 			if(in_array(null, $arguments, true))
 				throw new E\ConstructorArgumentException('Illegal argument [null].');
-			$this->entity = $this->table->select($arguments, $this->table->primaryKeyConstraint);
+			try {
+				$this->entity = $this->table->select($arguments, $this->table->primaryKeyConstraint);
+				if($this->entity->deleted)
+					throw new E\EntityDeletedException('This entity has been deleted. You can no longer instantiate it.');
+			} catch(TE\NonExistentEntityException $e) {
+				throw new E\UndefinedPrimaryKeyException('The primary key you specified does not exist in the table.');
+			}
 		} else {
 			$this->entity = $this->table->newEntity();
 		}

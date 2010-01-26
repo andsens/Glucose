@@ -52,11 +52,24 @@ class ModelTest extends TableComparisonTestCase {
 		$this->assertEquals(8000, $aarhus->postalCode);
 	}
 	
+	public function test_N_UndefinedEntity() {
+		$this->setExpectedException('\Glucose\Exceptions\User\UndefinedPrimaryKeyException', 'The primary key you specified does not exist in the table.');
+		$nonExistentCity = new City(0);
+	}
+	
 	public function test_P_Deletion() {
 		$helsinki = new City(3);
 		$helsinki->delete();
-		$this->deleteFrom('cities', array(5));
+		$this->deleteFrom('cities', array('id' => 3));
+		unset($helsinki);
 		$this->assertTablesEqual('cities');
+	}
+	
+	public function test_N_InitDeletedEntity() {
+		$anders1 = new Person(1);
+		$anders1->delete();
+		$this->setExpectedException('\Glucose\Exceptions\User\EntityDeletedException', 'This entity has been deleted. You can no longer instantiate it.');
+		$anders2 = new Person(1);
 	}
 	
 	public function test_P_Unset() {
