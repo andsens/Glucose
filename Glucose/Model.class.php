@@ -116,19 +116,6 @@ abstract class Model {
 	}
 	
 	/**
-	 * Magic method for setting values that correspond to a field in the referenced table.
-	 * @ignore
-	 * @param string $name Name of the field
-	 * @param mixed $value Value of the field
-	 */
-	public function __set($name, $value) {
-		$name = Model::$inflector->underscore($name);
-		$this->canModify($name);
-		$this->entity->fields[$name]->modelValue = $value;
-		$this->table->updateIdentifiers($this->entity);
-	}
-	
-	/**
 	 * Magic method for retrieving values of fields that correspond to a field in the referenced table.
 	 * @ignore
 	 * @param string $name Name of the field
@@ -156,6 +143,31 @@ abstract class Model {
 	}
 	
 	/**
+	 * Magic method for setting values that correspond to a field in the referenced table.
+	 * @ignore
+	 * @param string $name Name of the field
+	 * @param mixed $value Value of the field
+	 */
+	public function __set($name, $value) {
+		$name = Model::$inflector->underscore($name);
+		$this->canModify($name);
+		if($value === $this->entity->fields[$name]->value)
+			return;
+		
+		foreach($this->table->uniqueConstraints as $constraint) {
+			foreach($constraint->columns as $index => $constraintColumn) {
+				if($this->entity->fields[$name]->column === $constraintColumn) {
+					$values = $this->entity->getValues($constraint->columns);
+					$values[$index] = $value;
+					$this->changeUniqueConstraintValues($values, $constraint);
+					return;
+				}
+			}
+		}
+		$this->entity->fields[$name]->modelValue = $value;
+	}
+	
+	/**
 	 * Unsets a field
 	 * @ignore
 	 * @param string $name Name of the field
@@ -164,6 +176,14 @@ abstract class Model {
 		$name = Model::$inflector->underscore($name);
 		$this->canModify($name);
 		unset($this->entity->fields[$name]->value);
+	}
+	
+	private function changeUniqueConstraintValues(array $values, Constraints\UniqueConstraint $constraint) {
+		if($this->table->exists($values, $constraint))
+			throw new E\EntityCollisionException('Your changes collide with the unique values of an existing entity.');
+		foreach($constraint->columns as $index => $column)
+			$this->entity->fields[$column->name]->modelValue = $values[$index];
+		$this->table->updateIdentifiers($this->entity);
 	}
 	
 	private function canRead($name) {

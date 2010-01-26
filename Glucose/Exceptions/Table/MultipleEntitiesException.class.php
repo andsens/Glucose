@@ -6,7 +6,7 @@
  * @subpackage glucose.exceptions.table
  */
 namespace Glucose\Exceptions\Table;
-class NonExistentEntityException extends \RuntimeException implements TableException {
+class NonExistentEntityException extends \LogicException implements TableException {
 	
 }
 ?>

@@ -282,10 +282,8 @@ End;
 	 * @throws MultipleEntitiesException
 	 * @return Associative array over the resulting values
 	 */
-	public function select(array $uniqueValues, Constraints\UniqueConstraint $constraint = null) {
-		if($constraint === null)
-			$constraint = $this->primaryKeyConstraint;
-		elseif(!in_array($constraint, $this->uniqueConstraints, true))
+	public function select(array $uniqueValues, Constraints\UniqueConstraint $constraint) {
+		if(!in_array($constraint, $this->uniqueConstraints, true))
 			throw new E\InvalidUniqueConstraintException('The unique constraint does not match any constraint in the table.');
 		
 		$entity = $this->entityEngine->findModel($uniqueValues, $constraint);
@@ -468,6 +466,41 @@ End;
 		$entity->inDB = false;
 	}
 	
+	public function exists(array $uniqueValues, Constraints\UniqueConstraint $constraint) {
+		$fromModel = $this->entityEngine->findModel($uniqueValues, $constraint);
+		return
+			($fromModel !== null && !$fromModel->deleted)
+			|| (
+				$this->entityEngine->findDB($uniqueValues, $constraint) === null
+				&& $this->existsInDB($uniqueValues, $constraint)
+			);
+	}
+	
+	private function existsInDB(array $uniqueValues, Constraints\UniqueConstraint $constraint) {
+		if(!isset($constraint->existenceStatement)) {
+			$sql = 'SELECT NULL FROM `'.$this->databaseName.'`.`'.$this->tableName.'` ';
+			$sql .= 'WHERE `'.implode('` = ? AND `', $constraint->columns).'` = ?';
+			$constraint->existenceStatement = self::$mysqli->prepare($sql);
+			if(self::$mysqli->errno > 0) throw MySQLErrorException::findClass(self::$mysqli);
+		}
+		$constraintStatementTypes = $constraint->statementTypes;
+		$statementValues = array(&$constraintStatementTypes);
+		foreach($uniqueValues as &$value)
+			$statementValues[] = &$value;
+		call_user_func_array(array(&$constraint->existenceStatement, 'bind_param'), $statementValues);
+		$constraint->existenceStatement->execute();
+		if(self::$mysqli->errno > 0) throw MySQLErrorException::findClass(self::$mysqli);
+		$constraint->existenceStatement->store_result();
+		$numberOfRowsReturned = $constraint->existenceStatement->num_rows;
+		$constraint->existenceStatement->free_result();
+		if($numberOfRowsReturned == 1)
+			return true;
+		elseif($numberOfRowsReturned < 1)
+			return false;
+		else
+			throw new E\MultipleEntitiesException('The values you specified match two or more entries in the table.');
+	}
+	
 	public function syncWithDB(Entity $entity, Field $requiredField = null) {
 		if($entity->inDB) {
 			if($entity->deleted) {
@@ -501,6 +534,7 @@ End;
 			if($entity->referenceCount == 0) {
 				$this->syncWithDB($entity);
 				$this->entityEngine->dereference($entity);
+				$entity->detach($this);
 			}
 		}
 	}

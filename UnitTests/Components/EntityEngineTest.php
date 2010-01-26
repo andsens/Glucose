@@ -179,8 +179,7 @@ class EntityEngineTest extends PHPUnit_Framework_TestCase {
 	
 	public function test_N_FindInvalidIdentifer() {
 		$engine = new EntityEngine(self::$constraints['countries']);
-		$this->setExpectedException('Glucose\Exceptions\Entity\InvalidIdentifierException', 'The identifier may not contain null');
-		$engine->findDB(array(null), self::$constraints['countries']['PRIMARY']);
+		$this->assertNull($engine->findDB(array(null), self::$constraints['countries']['PRIMARY']));
 	}
 	
 	public function test_P_SuccessfulDestruction() {

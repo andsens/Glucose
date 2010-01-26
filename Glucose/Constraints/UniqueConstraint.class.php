@@ -16,6 +16,8 @@ class UniqueConstraint extends Constraint {
 	 */
 	public $selectStatement;
 	
+	public $existenceStatement;
+	
 	private $refreshStatements = array();
 	
 	public function setRefreshStatement(array $columnNames, \mysqli_stmt $statement) {

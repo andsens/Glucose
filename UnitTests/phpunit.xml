@@ -12,6 +12,7 @@
 			<directory suffix=".php">../UnitTests</directory>
 			<file>../Glucose/Inflector.class.php</file>
 			<file>../Glucose/ImmutableArrayObject.class.php</file>
+			<file>../Glucose/autoloader.inc.php</file>
 		</blacklist>
 	</filter>
 </phpunit>

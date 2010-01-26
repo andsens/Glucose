@@ -30,14 +30,14 @@ class TableTest extends TableComparisonTestCase {
 	
 	public function test_P_Select1() {
 		$cities = self::$tables['cities'];
-		$hamburg = $cities->select(array(2));
+		$hamburg = $cities->select(array(2), $cities->primaryKeyConstraint);
 		$this->assertEquals('Hamburg', $hamburg->fields['name']->value);
 		$this->assertEquals('20095', $hamburg->fields['postal_code']->value);
 	}
 	
 	public function test_P_Select2() {
 		$people = self::$tables['people'];
-		$anders = $people->select(array(1));
+		$anders = $people->select(array(1), $people->primaryKeyConstraint);
 		$this->assertEquals('Anders', $anders->fields['first_name']->value);
 	}
 	
@@ -50,23 +50,23 @@ class TableTest extends TableComparisonTestCase {
 	public function test_N_SelectNonexistentEntity() {
 		$cities = self::$tables['cities'];
 		$this->setExpectedException('Glucose\Exceptions\Table\NonExistentEntityException', 'The values you specified do not match any entry in the table.');
-		$atlantis = $cities->select(array(0));
+		$atlantis = $cities->select(array(0), $cities->primaryKeyConstraint);
 	}
 	
 	public function test_P_PreviousSelect() {
 		$cities = self::$tables['cities'];
-		$hamburg = $cities->select(array(2));
-		$hamburg2 = $cities->select(array(2));
+		$hamburg = $cities->select(array(2), $cities->primaryKeyConstraint);
+		$hamburg2 = $cities->select(array(2), $cities->primaryKeyConstraint);
 		$this->assertEquals($hamburg, $hamburg2);
 		$this->assertTrue($hamburg === $hamburg2);
 	}
 	
 	public function test_P_ChangeIdentifierSelect() {
 		$cities = self::$tables['cities'];
-		$hamburg = $cities->select(array(2));
+		$hamburg = $cities->select(array(2), $cities->primaryKeyConstraint);
 		$hamburg->fields['id']->modelValue = 16;
 		$cities->updateIdentifiers($hamburg);
-		$hamburg2 = $cities->select(array(16));
+		$hamburg2 = $cities->select(array(16), $cities->primaryKeyConstraint);
 		$this->assertEquals($hamburg, $hamburg2);
 		$this->assertTrue($hamburg === $hamburg2);
 	}
@@ -74,11 +74,11 @@ class TableTest extends TableComparisonTestCase {
 	
 	public function test_N_SelectOutdatedIdentifier() {
 		$cities = self::$tables['cities'];
-		$hamburg = $cities->select(array(2));
+		$hamburg = $cities->select(array(2), $cities->primaryKeyConstraint);
 		$hamburg->fields['id']->modelValue = 16;
 		$cities->updateIdentifiers($hamburg);
 		$this->setExpectedException('Glucose\Exceptions\Table\EntityValuesChangedException', 'The values you specified no longer match an entity.');
-		$hamburg2 = $cities->select(array(2));
+		$hamburg2 = $cities->select(array(2), $cities->primaryKeyConstraint);
 	}
 	
 	public function test_N_SelectWithInvalidIdentifier() {
@@ -124,7 +124,7 @@ class TableTest extends TableComparisonTestCase {
 	
 	public function test_P_SelectUpdate1() {
 		$cities = self::$tables['cities'];
-		$aarhus = $cities->select(array(1));
+		$aarhus = $cities->select(array(1), $cities->primaryKeyConstraint);
 		$aarhus->referenceCount++;
 		$aarhus->fields['name']->modelValue = 'Smilets by';
 		$aarhus->referenceCount--;
@@ -135,7 +135,7 @@ class TableTest extends TableComparisonTestCase {
 	
 	public function test_P_SelectUpdate2() {
 		$people = self::$tables['people'];
-		$anders = $people->select(array(1));
+		$anders = $people->select(array(1), $people->primaryKeyConstraint);
 		$anders->referenceCount++;
 		$anders->fields['first_name']->modelValue = '';
 		$anders->referenceCount--;
@@ -167,7 +167,7 @@ class TableTest extends TableComparisonTestCase {
 	
 	public function test_P_SelectUpdateNothing() {
 		$people = self::$tables['people'];
-		$anders = $people->select(array(1));
+		$anders = $people->select(array(1), $people->primaryKeyConstraint);
 		$anders->referenceCount++;
 		$anders->referenceCount--;
 		
@@ -176,18 +176,18 @@ class TableTest extends TableComparisonTestCase {
 	
 	public function test_P_SelectUpdate_UpdateIdentifier_Select() {
 		$cities = self::$tables['cities'];
-		$hamburg = $cities->select(array(2));
+		$hamburg = $cities->select(array(2), $cities->primaryKeyConstraint);
 		$hamburg->referenceCount++;
 		$hamburg->fields['id']->modelValue = 16;
 		$cities->updateIdentifiers($hamburg);
 		$hamburg->referenceCount--;
-		$hamburg2 = $cities->select(array(16));
+		$hamburg2 = $cities->select(array(16), $cities->primaryKeyConstraint);
 		$this->assertEquals('Hamburg', $hamburg2->fields['name']->value);
 	}
 	
 	public function test_P_SelectDelete1() {
 		$people = self::$tables['people'];
-		$casper = $people->select(array(2));
+		$casper = $people->select(array(2), $people->primaryKeyConstraint);
 		$casper->referenceCount++;
 		$casper->deleted = true;
 		$casper->referenceCount--;
@@ -198,7 +198,7 @@ class TableTest extends TableComparisonTestCase {
 	
 	public function test_P_SelectDelete2() {
 		$cities = self::$tables['cities'];
-		$hamburg = $cities->select(array(2));
+		$hamburg = $cities->select(array(2), $cities->primaryKeyConstraint);
 		$hamburg->referenceCount++;
 		$hamburg->deleted = true;
 		$hamburg->referenceCount--;

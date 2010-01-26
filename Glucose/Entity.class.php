@@ -9,6 +9,8 @@ namespace Glucose;
 use \Glucose\Exceptions\Entity as E;
 class Entity implements \SplSubject {
 	
+	private $identifier;
+	
 	private $fields;
 	
 	public $inDB;
@@ -32,8 +34,8 @@ class Entity implements \SplSubject {
 	
 	public function getValues(array $columns) {
 		$values = array();
-		foreach($columns as $name => $column)
-			$values[$name] = $this->fields[$column->name]->value;
+		foreach($columns as $index => $column)
+			$values[$index] = $this->fields[$column->name]->value;
 		return $values;
 	}
 	
@@ -76,6 +78,9 @@ class Entity implements \SplSubject {
 	
 	public function __set($name, $value) {
 		switch($name) {
+			case 'identifier':
+				$this->identifier = $value;
+				break;
 			case 'referenceCount':
 				$this->referenceCount = $value;
 				if($this->referenceCount == 0)

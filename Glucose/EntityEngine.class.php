@@ -37,7 +37,7 @@ class EntityEngine {
 	
 	private function find(array $identifier, Constraints\UniqueConstraint $constraint, array &$entities) {
 		if(in_array(null, $identifier, true))
-			throw new E\InvalidIdentifierException('The identifier may not contain null.');
+			return null;
 		$hash = $this->hashIdentifier($identifier);
 		if(array_key_exists($hash, $entities[$constraint->name]))
 			return $entities[$constraint->name][$hash];
@@ -57,6 +57,8 @@ class EntityEngine {
 					throw new E\ModelConstraintCollisionException(
 						'An entity with the same set of values for the unique constraint '.$constraint->name.' already exists in the model.');
 			$newHashes[$constraint->name] = $hash;
+			if($constraint instanceof \Glucose\Constraints\PrimaryKeyConstraint)
+				$entity->identifier = $hash;
 		}
 		foreach($newHashes as $constraintName => $hash) {
 			$oldHash = null;
