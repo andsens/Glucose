@@ -70,6 +70,7 @@ abstract class Model {
 		if(!array_key_exists($tableName, self::$tables))
 			self::$tables[$tableName] = new Table($tableName);
 		$this->table = self::$tables[$tableName];
+		
 		$arguments = func_get_args();
 		if(count($arguments) == 1 && $arguments[0] instanceof Entity) {
 			$this->entity = $arguments[0];
@@ -78,6 +79,7 @@ abstract class Model {
 				throw new E\ConstructorArgumentException('Wrong argument count.');
 			if(in_array(null, $arguments, true))
 				throw new E\ConstructorArgumentException('Illegal argument [null].');
+			
 			try {
 				$this->entity = $this->table->select($arguments, $this->table->primaryKeyConstraint);
 				if($this->entity->deleted)
@@ -88,20 +90,26 @@ abstract class Model {
 		} else {
 			$this->entity = $this->table->newEntity();
 		}
+		
 		$this->entity->referenceCount++;
 	}
 	
 	public static function __callStatic($name, $arguments) {
 		if($name == 'getTableName')
 			throw new E\MethodExpectedException('The function Glucose\Model::getTableName() cannot be called from a static context unless implemented in a subclass.');
+		
 		if(substr($name, 0, 6) == 'initBy') {
 			try {
 				if(static::$className == 'Model')
 					throw new E\VariableExpectedException('In order to initialize entities by unique identifiers, you will have to add the static variable $className.');
-				$table = self::$tables[static::getTableName()];
+				$tableName = static::getTableName();
 			} catch(E\MethodExpectedException $e) {
-				$table = self::$tables[self::$inflector->tableize(static::$className)];
+				$tableName = self::$inflector->tableize(static::$className);
 			}
+			if(!array_key_exists($tableName, self::$tables))
+				self::$tables[$tableName] = new Table($tableName);
+			$table = self::$tables[$tableName];
+			
 			foreach($table->uniqueConstraints as $constraint) {
 				$camelized = array();
 				foreach($constraint->columns as $column)
@@ -119,7 +127,7 @@ abstract class Model {
 	}
 	
 	public function delete() {
-		$this->entity->deleted = true;
+		$this->table->delete($this->entity);
 	}
 	
 	/**
@@ -132,7 +140,9 @@ abstract class Model {
 		$name = Model::$inflector->underscore($name);
 		$this->canRead($name);
 		if($this->entity->fields[$name]->updateModel)
-			$this->table->syncWithDB($this->entity, $this->entity->fields[$name]);
+			$this->table->syncWithDB($this->entity);
+		if($this->entity->fields[$name]->updateModel)
+			$this->table->refresh($this->entity);
 		return $this->entity->fields[$name]->value;
 	}
 	
@@ -146,6 +156,8 @@ abstract class Model {
 	public function __isset($name) {
 		$name = Model::$inflector->underscore($name);
 		$this->canRead($name);
+		if($this->entity->inDB && $this->entity->fields[$name]->updateModel)
+			$this->table->syncWithDB($this->entity);
 		return isset($this->entity->fields[$name]->value);
 	}
 	
@@ -166,7 +178,10 @@ abstract class Model {
 				if($this->entity->fields[$name]->column === $constraintColumn) {
 					$values = $this->entity->getValues($constraint->columns);
 					$values[$index] = $value;
-					$this->changeUniqueConstraintValues($values, $constraint);
+					if($this->table->exists($values, $constraint))
+						throw new E\EntityCollisionException('Your changes collide with the unique values of an existing entity.');
+					$this->entity->fields[$name]->modelValue = $value;
+					$this->table->updateIdentifiers($this->entity);
 					return;
 				}
 			}
@@ -183,13 +198,23 @@ abstract class Model {
 		$name = Model::$inflector->underscore($name);
 		$this->canModify($name);
 		unset($this->entity->fields[$name]->value);
+		foreach($this->table->uniqueConstraints as $constraint) {
+			foreach($constraint->columns as $index => $constraintColumn) {
+				if($this->entity->fields[$name]->column === $constraintColumn) {
+					$this->table->updateIdentifiers($this->entity);
+					return;
+				}
+			}
+		}
 	}
 	
 	private function changeUniqueConstraintValues(array $values, Constraints\UniqueConstraint $constraint) {
+		// TODO: Can't do it like this
 		if($this->table->exists($values, $constraint))
 			throw new E\EntityCollisionException('Your changes collide with the unique values of an existing entity.');
 		foreach($constraint->columns as $index => $column)
-			$this->entity->fields[$column->name]->modelValue = $values[$index];
+			if($values[$index] !== $this->entity->fields[$column->name]->value)
+				$this->entity->fields[$column->name]->modelValue = $values[$index];
 		$this->table->updateIdentifiers($this->entity);
 	}
 	

@@ -28,13 +28,15 @@ class Field {
 	 * Wether the model needs updating
 	 * @var bool
 	 */
-	private $updateModel;
+	private $updateModel = true;
 	
 	/**
 	 * Wether the database needs updating
 	 * @var bool
 	 */
-	private $updateDB;
+	private $updateDB = false;
+	
+	private $setToDefault = true;
 	
 	/**
 	 * Constructs the Field.
@@ -42,16 +44,9 @@ class Field {
 	 */
 	public function __construct(Column $column) {
 		$this->column = $column;
-		$this->updateModel = true;
-		$this->updateDB = false;
+		$this->currentValue = $this->column->default;
 	}
 	
-	/**
-	 * Magic method for retrieving various information about the field
-	 * @ignore
-	 * @param string $name Name of the field property
-	 * @return mixed
-	 */
 	public function __get($name) {
 		switch($name) {
 			case 'column':
@@ -64,18 +59,15 @@ class Field {
 				return $this->updateModel;
 			case 'updateDB':
 				return $this->updateDB;
+			case 'setToDefault':
+				return $this->setToDefault;
 		}
 	}
 	
-	/**
-	 * Magic method for specifying the fields value
-	 * @ignore
-	 * @param string $name Can be either 'modelValue' or 'dbValue', depending on where the value originates from
-	 * @param mixed $value New value of the field
-	 */
 	public function __set($name, $value) {
 		switch($name) {
 			case 'modelValue':
+				$this->setToDefault = false;
 				$this->updateDB = $this->databaseValue != $value;
 				$this->updateModel = false;
 				$this->currentValue = $value;
@@ -89,48 +81,51 @@ class Field {
 		}
 	}
 	
-	/**
-	 * Unsets the value of the field.
-	 * @ignore
-	 * @param string $name If $name is not equal to 'value', nothing will be unset
-	 */
 	public function __unset($name) {
 		if($name == 'value') {
-			unset($this->currentValue);
-			$this->updateModel = false;
+			$this->setToDefault = true;
 			$this->updateDB = true;
-		}
-	}
-	
-	/**
-	 * Returns wether the value of the field has been set.
-	 * @ignore
-	 * @param string $name If $name is not equals to 'value', null will be returned
-	 * @return bool
-	 */
-	public function __isset($name) {
-		if($name == 'value') {
-			return isset($this->currentValue);
-		}
-	}
-	
-	/**
-	 * Signals that the database has been updated, depending on the column type
-	 * the object takes corresponding action and either sets it's value to the default,
-	 * does nothing or reports that it needs updating.
-	 */
-	public function dbUpdated() {
-		$this->updateDB = false;
-		if(!isset($this->value)) {
-			// TODO: What about other timestamp types with null values?
-			if($this->column->type == 'timestamp'
-			&& strtoupper($this->column->default) == 'CURRENT_TIMESTAMP')
+			if($this->column->type == 'timestamp' && strtoupper($this->column->default) == 'CURRENT_TIMESTAMP')
 				$this->updateModel = true;
+			elseif($this->column->isAutoIncrement)
+				$this->currentValue = 0;
 			else
-				$this->dbValue = $this->column->default;
-		} else {
-			$this->dbValue = $this->value;
+				$this->currentValue = $this->column->default;
 		}
+	}
+	
+	public function __isset($name) {
+		switch($name) {
+			case 'value':
+				return $this->currentValue !== null;
+		}
+	}
+	
+	public function dbInserted() {
+		if($this->setToDefault
+		&& $this->column->type == 'timestamp'
+		&& strtoupper($this->column->default) == 'CURRENT_TIMESTAMP') {
+			$this->updateModel = true;
+		} else {
+			$this->updateModel = false;
+			$this->dbValue = $this->currentValue;
+		}
+		$this->updateDB = false;
+		$this->setToDefault = false;
+	}
+	
+	public function dbUpdated() {
+		if($this->column->onUpdateCurrentTimestamp && $this->updateDB
+		|| (	$this->setToDefault
+				&& $this->column->type == 'timestamp'
+				&& strtoupper($this->column->default) == 'CURRENT_TIMESTAMP')) {
+			$this->updateModel = true;
+		} else {
+			$this->updateModel = false;
+			$this->dbValue = $this->currentValue;
+		}
+		$this->updateDB = false;
+		$this->setToDefault = false;
 	}
 }
 ?>

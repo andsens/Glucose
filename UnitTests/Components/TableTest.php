@@ -151,16 +151,14 @@ class TableTest extends TableComparisonTestCase {
 			'password' => sha1('secret'));
 		$users = self::$tables['users'];
 		$eclecnant = $users->newEntity();
-		$eclecnant->referenceCount++;
 		foreach($values as $field => $value)
 			$eclecnant->fields[$field]->modelValue = $value;
 		
 		$insertStart = time();
-		$eclecnant->referenceCount--;
+		$users->syncWithDB($eclecnant, $eclecnant->fields['registered']);
 		$this->insertInto('users', $values);
 		$insertTime = time()-$insertStart;
 		$this->assertTablesEqual('users', array('registered'));
-		$users->syncWithDB($eclecnant);
 		$comparisonRegistered = $this->selectSingle('users', 'registered', array('person'=>2));
 		$this->assertLessThanOrEqual($insertTime, strtotime($comparisonRegistered)-strtotime($eclecnant->fields['registered']->value));
 	}

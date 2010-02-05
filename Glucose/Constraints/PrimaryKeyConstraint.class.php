@@ -9,27 +9,5 @@
  */
 namespace Glucose\Constraints;
 class PrimaryKeyConstraint extends UniqueConstraint {
-	
-	/**
-	 * Points at the {@link Column column}, which auto increments in this {@link Constraint constraint}
-	 * @var unknown_type
-	 */
-	public $autoIncrementColumn;
-	
-	private $updateStatements = array();
-	
-	public $deleteStatement;
-	
-	public function setUpdateStatement(array $columnNames, \mysqli_stmt $statement) {
-		$this->updateStatements[$this->createHash($columnNames)] = $statement;
-	}
-	
-	public function getUpdateStatement(array $columnNames) {
-		$hash = $this->createHash($columnNames);
-		if(array_key_exists($hash, $this->updateStatements))
-			return $this->updateStatements[$hash];
-		else
-			return null;
-	}
 }
 ?>

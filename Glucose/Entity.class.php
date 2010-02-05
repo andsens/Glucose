@@ -7,7 +7,7 @@
  */
 namespace Glucose;
 use \Glucose\Exceptions\Entity as E;
-class Entity implements \SplSubject {
+class Entity {
 	
 	private $identifier;
 	
@@ -19,7 +19,7 @@ class Entity implements \SplSubject {
 	
 	private $referenceCount;
 	
-	private $observers;
+	private $table;
 	
 	public function __construct(array $columns) {
 		$fieldsArray = array();
@@ -29,7 +29,6 @@ class Entity implements \SplSubject {
 		$this->inDB = false;
 		$this->deleted = false;
 		$this->referenceCount = 0;
-		$this->observers = new \SplObjectStorage();
 	}
 	
 	public function getValues(array $columns) {
@@ -44,27 +43,6 @@ class Entity implements \SplSubject {
 		foreach($columns as $name => $column)
 			$values[$name] = $this->fields[$column->name]->dbValue;
 		return $values;
-	}
-	
-	public function getUpdateValues() {
-		$values = array();
-		foreach($this->fields as $name => $field)
-			if($field->updateDB)
-				$values[$name] = $field->value;
-		return $values;
-	}
-	
-	public function getRefreshColumnNames() {
-		$columns = array();
-		foreach($this->fields as $name => $field)
-			if($field->updateModel)
-				$columns[] = $name;
-		return $columns;
-	}
-	
-	public function dbUpdated() {
-		foreach($this->fields as $field)
-			$field->dbUpdated();
 	}
 	
 	public function __get($name) {
@@ -83,23 +61,13 @@ class Entity implements \SplSubject {
 				break;
 			case 'referenceCount':
 				$this->referenceCount = $value;
-				if($this->referenceCount == 0)
-					$this->notify();
+				if($this->referenceCount == 0 && isset($this->table))
+					$this->table->dereference($this);
+				break;
+			case 'table':
+				$this->table = $value;
 				break;
 		}
-	}
-	
-	public function attach(\SplObserver $observer) {
-		$this->observers->attach($observer);
-	}
-	
-	public function detach(\SplObserver $observer) {
-		$this->observers->detach($observer);
-	}
-	
-	public function notify() {
-		foreach($this->observers as $observer)
-			$observer->update($this);
 	}
 }
 ?>

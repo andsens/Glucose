@@ -61,21 +61,21 @@ class FieldTest extends PHPUnit_Framework_TestCase {
 	}
 	
 	public function test_P_UnSet() {
-		$field = new Field(self::$columns['cities']['id']);
+		$field = new Field(self::$columns['people']['email']);
 		$field->modelValue = 2;
 		unset($field->value);
 		$this->assertFalse(isset($field->value));
 	}
 	
-	public function test_P_DefaultOnUpdate() {
+	public function test_P_DefaultOnInsert() {
 		$column = new Column('some_string', 'varchar', 16, true, 'String');
 		$field = new Field($column);
-		$field->dbUpdated();
+		$field->dbInserted();
 		$this->assertEquals('String', $field->value);
 		$this->assertFalse($field->updateModel);
 	}
 	
-	public function test_P_ModelValueOnUpdate() {
+	public function test_P_ModelValueOnInsert() {
 		$field = new Field(self::$columns['cities']['id']);
 		$field->modelValue = 2;
 		$field->dbUpdated();

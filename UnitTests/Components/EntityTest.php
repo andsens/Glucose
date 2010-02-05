@@ -42,19 +42,6 @@ class EntityTest extends PHPUnit_Framework_TestCase {
 		$this->assertEquals($expected, $denmark->getDBValues(self::$columns['countries']));
 	}
 	
-	public function test_P_GetUpdateValues() {
-		$aarhus = new Entity(self::$columns['cities']);
-		$aarhus->fields['id']->dbValue = 1;
-		$aarhus->fields['country']->dbValue = 2;
-		$aarhus->fields['name']->modelValue = 'Århus';
-		$aarhus->fields['postal_code']->modelValue = 8000;
-		$updateColumns = array('name' => 'Århus', 'postal_code' => 8000);
-		$columnsToRetrieve = array('name' => self::$columns['cities']['name'], 'postal_code' => self::$columns['cities']['postal_code']);
-		$this->assertEquals($updateColumns, $aarhus->getUpdateValues($columnsToRetrieve));
-		
-		
-	}
-	
 	protected function tearDown() {
 	}
 }

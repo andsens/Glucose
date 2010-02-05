@@ -44,6 +44,10 @@ class Column {
 	 */
 	private $default;
 	
+	private $isAutoIncrement;
+	
+	private $onUpdateCurrentTimeStamp;
+	
 	/**
 	 * Constructs the column.
 	 * @param string $name Column name
@@ -52,12 +56,18 @@ class Column {
 	 * @param bool $notNull Wether the column cannot be null
 	 * @param mixed $default Default value
 	 */
-	public function __construct($name, $type = 'int', $maxLength = null, $notNull = false, $default = null) {
+	public function __construct($name, $type = 'int', $maxLength = null, $notNull = false, $default = null, $extra = '') {
 		$this->name = $name;
 		$this->type = strtolower($type);
 		$this->maxLength = $maxLength;
 		$this->notNull = $notNull;
 		$this->default = $default;
+		if(strtolower($extra) != 'auto_increment') {
+			$this->isAutoIncrement = false;
+			$this->onUpdateCurrentTimeStamp = strtolower($extra) == 'on update current_timestamp';
+		} else {
+			$this->isAutoIncrement = true;
+		}
 	}
 	
 	/**
@@ -80,6 +90,10 @@ class Column {
 				return $this->notNull;
 			case 'default':
 				return $this->default;
+			case 'isAutoIncrement':
+				return $this->isAutoIncrement;
+			case 'onUpdateCurrentTimeStamp':
+				return $this->onUpdateCurrentTimeStamp;
 		}
 	}
 	
@@ -108,6 +122,13 @@ class Column {
 			default:
 				return 's';
 		}
+	}
+	
+	public static function createHash(array $columnNames) {
+		$compoundHash = '';
+		foreach($columnNames as $columnName)
+			$compoundHash .= sha1($columnName);
+		return sha1($compoundHash);
 	}
 	
 	/**
