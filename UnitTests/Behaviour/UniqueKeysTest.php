@@ -41,7 +41,7 @@ class UniqueKeysTest extends TableComparisonTestCase {
 	}
 	
 	public function test_N_InitDeletedEntity() {
-		$this->markTestIncomplete();
+//		$this->markTestIncomplete();
 		$anders1 = new Person(1);
 		$anders1->delete();
 		$this->setExpectedException('\Glucose\Exceptions\User\EntityDeletedException', 'This entity has been deleted. You can no longer instantiate it.');

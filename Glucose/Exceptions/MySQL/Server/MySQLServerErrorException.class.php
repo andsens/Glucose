@@ -19,6 +19,7 @@ class MySQLServerErrorException extends \Glucose\Exceptions\MySQL\MySQLErrorExce
 			case 1048: $exception = new MySQLBadNullException($mysqli->error, $mysqli->errno); break;
 			case 1054: $exception = new MySQLBadFieldException($mysqli->error, $mysqli->errno); break;
 			case 1062: $exception = new MySQLDuplicateEntryException($mysqli->error, $mysqli->errno); break;
+			case 1364: $exception = new MySQLNoDefaultForFieldException($mysqli->error, $mysqli->errno); break;
 			default:   $exception = new MySQLUnknownErrorException($mysqli->error, $mysqli->errno); break;
 		}
 		return $exception;

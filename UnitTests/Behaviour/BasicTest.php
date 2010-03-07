@@ -52,8 +52,7 @@ class BasicTest extends TableComparisonTestCase {
 	}
 
 	public function test_N_ObjectInitFailOnUndefined() {
-		$this->markTestIncomplete();
-		$this->setExpectedException('UndefinedPrimaryKeyException', 'The primary key you specified is not represented in the database.');
+		$this->setExpectedException('\Glucose\Exceptions\User\UndefinedPrimaryKeyException', 'The primary key you specified does not exist in the table.');
 		$country = new Country(0);
 		$country->name;
 	}
@@ -69,13 +68,6 @@ class BasicTest extends TableComparisonTestCase {
 		$this->deleteFrom('cities', array('id' => 3));
 		unset($helsinki);
 		$this->assertTablesEqual('cities');
-	}
-	
-	public function test_P_DeletionWithForeignKey() {
-		$this->markTestIncomplete();
-		$anders = new Person(1);
-		$anders->delete();
-		unset($anders);
 	}
 	
 	public function test_P_Isset() {
@@ -102,8 +94,7 @@ class BasicTest extends TableComparisonTestCase {
 	}
 
 	public function test_N_ObjectCreationFailOnNull() {
-		$this->markTestIncomplete();
-		$this->setExpectedException('\Glucose\Exceptions\MySQL\Server\MySQLBadNullException', "Column 'name' cannot be null");
+		$this->setExpectedException('\Glucose\Exceptions\MySQL\Server\MySQLNoDefaultForFieldException', "Field 'name' doesn't have a default value");
 		$country = new Country;
 		$country->name;
 		unset($country);

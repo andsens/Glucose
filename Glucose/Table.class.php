@@ -218,9 +218,23 @@ End;
 		$statementValues = array(&$types);
 		foreach($values as &$value)
 			$statementValues[] = &$value;
-		call_user_func_array(array(&$statement, 'bind_param'), $statementValues);
+		$noParams = count($values);
+		if(strlen($types) != $noParams)
+			throw new E\ParameterCountMismatchException('There is a mismatch between the number of statement types and parameters.');
+		if($noParams > 0)
+			call_user_func_array(array(&$statement, 'bind_param'), $statementValues);
 		$statement->execute();
 		if(self::$mysqli->errno > 0) throw MySQLErrorException::findClass(self::$mysqli);
+	}
+	
+	private function implode($tokens, $glue = '', $wrapper = '', $replacement = null) {
+		$string = '';
+		$noTokens = count($tokens);
+		if($noTokens == 0)
+			return $string;
+		foreach($tokens as $token)
+			$string .= $wrapper.(isset($replacement)?$replacement:$token).$wrapper.$glue;
+		return substr($string, 0, -strlen($glue));
 	}
 	
 	/**
@@ -245,11 +259,20 @@ End;
 		
 		$statementIdentifier = Column::createHash($insertValuesColumnNames);
 		if(!array_key_exists($statementIdentifier, $this->insertStatements)) {
-			$sql = 'INSERT INTO `'.$this->databaseName.'`.`'.$this->tableName.'` (';
-			$sql .= '`'.implode('`, `', $insertValuesColumnNames).'`) ';
-			$sql .= 'VALUES ('.str_repeat('?, ', count($insertValuesColumnNames)-1).'?)';
-			$this->insertStatements[$statementIdentifier] = self::$mysqli->prepare($sql);
-			if(self::$mysqli->errno > 0) throw MySQLErrorException::findClass(self::$mysqli);
+			$sql = 'INSERT INTO `'.$this->databaseName.'`.`'.$this->tableName.'` ';
+			$sql .= '('.$this->implode($this->columns, ',', '`').') ';
+			$placeholders = array();
+			foreach($this->columns as $column)
+				if(in_array($column->name, $insertValuesColumnNames))
+					$placeholders[] = '?';
+				elseif(strtoupper($column->default) != 'CURRENT_TIMESTAMP')
+					$placeholders[] = "DEFAULT(`$column->name`)";
+				else
+					$placeholders[] = 'DEFAULT';
+			$sql .= 'VALUES ('.$this->implode($placeholders, ',').')';
+			$stmt = self::$mysqli->prepare($sql);
+			if($stmt === false) throw MySQLErrorException::findClass(self::$mysqli);
+			$this->insertStatements[$statementIdentifier] = $stmt;
 		}
 		$this->bindAndExecute($this->insertStatements[$statementIdentifier], $statementTypes, $statementValues);
 		if(self::$mysqli->insert_id > 0) {
@@ -288,8 +311,9 @@ End;
 			$sql = 'SELECT `'.implode('`, `', array_diff($this->columns, $constraint->columns)).'` ';
 			$sql .= 'FROM `'.$this->databaseName.'`.`'.$this->tableName.'` ';
 			$sql .= 'WHERE `'.implode('` = ? AND `', $constraint->columns).'` = ?';
-			$constraint->selectStatement = self::$mysqli->prepare($sql);
-			if(self::$mysqli->errno > 0) throw MySQLErrorException::findClass(self::$mysqli);
+			$stmt = self::$mysqli->prepare($sql);
+			if($stmt === false) throw MySQLErrorException::findClass(self::$mysqli);
+			$constraint->selectStatement = $stmt;
 		}
 		$this->bindAndExecute($constraint->selectStatement, $constraint->statementTypes, $uniqueValues);
 		$constraint->selectStatement->store_result();
@@ -349,8 +373,9 @@ End;
 			$sql = 'SELECT `'.implode('`, `', $refreshColumnNames).'` ';
 			$sql .= 'FROM `'.$this->databaseName.'`.`'.$this->tableName.'` ';
 			$sql .= 'WHERE `'.implode('` = ? AND `', $constraint->columns).'` = ?';
-			$constraint->setRefreshStatement($refreshColumnNames, self::$mysqli->prepare($sql));
-			if(self::$mysqli->errno > 0) throw MySQLErrorException::findClass(self::$mysqli);
+			$stmt = self::$mysqli->prepare($sql);
+			if($stmt === false) throw MySQLErrorException::findClass(self::$mysqli);
+			$constraint->setRefreshStatement($refreshColumnNames, $stmt);
 		}
 		$refreshStatement = $constraint->getRefreshStatement($refreshColumnNames);
 		
@@ -414,15 +439,19 @@ End;
 		$updateStatement = $this->primaryKeyConstraint->getUpdateStatement($statementIdentifier);
 		if($updateStatement == null) {
 			$sql = 'UPDATE `'.$this->databaseName.'`.`'.$this->tableName.'` ';
-			$sql .= 'SET `';
+			$placeholders = array();
 			foreach($updateValuesColumnNames as $columnName)
-				$sql .= $columnName.'` = ?, `';
+				$placeholders[] = "`$columnName`=?";
 			foreach($updateDefaultsColumnNames as $columnName)
-				$sql .= $columnName.'` = DEFAULT, `';
-			$sql = substr($sql, 0, -3);
+				if(strtoupper($this->columns[$columnName]->default) != 'CURRENT_TIMESTAMP') // TODO: This is a bit ugly
+					$placeholders[] = "`$columnName`=DEFAULT(`$columnName`)";
+				else
+					$placeholders[] = "`$columnName`=DEFAULT";
+			$sql .= 'SET '.implode(',', $placeholders);
 			$sql .= ' WHERE `'.implode('` = ? AND `', $this->primaryKeyConstraint->columns).'` = ?';
-			$updateStatement = self::$mysqli->prepare($sql);
-			if(self::$mysqli->errno > 0) throw MySQLErrorException::findClass(self::$mysqli);
+			$stmt = self::$mysqli->prepare($sql);
+			if($stmt === false) throw MySQLErrorException::findClass(self::$mysqli);
+			$updateStatement = $stmt;
 			$this->primaryKeyConstraint->setUpdateStatement($statementIdentifier, $updateStatement);
 		}
 		$this->bindAndExecute($updateStatement, $statementTypes, $statementValues);
@@ -445,8 +474,9 @@ End;
 		if(!isset($this->primaryKeyConstraint->deleteStatement)) {
 			$sql = 'DELETE FROM `'.$this->databaseName.'`.`'.$this->tableName.'` ';
 			$sql .= 'WHERE `'.implode('` = ? AND `', $this->primaryKeyConstraint->columns).'` = ?';
-			$this->primaryKeyConstraint->deleteStatement = self::$mysqli->prepare($sql);
-			if(self::$mysqli->errno > 0) throw MySQLErrorException::findClass(self::$mysqli);
+			$stmt = self::$mysqli->prepare($sql);
+			if($stmt === false) throw MySQLErrorException::findClass(self::$mysqli);
+			$this->primaryKeyConstraint->deleteStatement = $stmt;
 		}
 		$this->bindAndExecute(
 			$this->primaryKeyConstraint->deleteStatement,
@@ -470,8 +500,9 @@ End;
 			if(!isset($constraint->existenceStatement)) {
 				$sql = 'SELECT NULL FROM `'.$this->databaseName.'`.`'.$this->tableName.'` ';
 				$sql .= 'WHERE `'.implode('` = ? AND `', $constraint->columns).'` = ?';
-				$constraint->existenceStatement = self::$mysqli->prepare($sql);
-				if(self::$mysqli->errno > 0) throw MySQLErrorException::findClass(self::$mysqli);
+				$stmt = self::$mysqli->prepare($sql);
+				if($stmt === false) throw MySQLErrorException::findClass(self::$mysqli);
+				$constraint->existenceStatement = $stmt;
 			}
 			$this->bindAndExecute($constraint->existenceStatement, $constraint->statementTypes, $uniqueValues);
 			$constraint->existenceStatement->store_result();

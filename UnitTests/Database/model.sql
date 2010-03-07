@@ -59,7 +59,7 @@ CREATE  TABLE IF NOT EXISTS `users` (
   `person` INT NOT NULL ,
   `nickname` VARCHAR(16) NOT NULL ,
   `password` CHAR(40) NOT NULL ,
-  `registered` TIMESTAMP NOT NULL ,
+  `registered` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ,
   `last_login` TIMESTAMP NULL ,
   PRIMARY KEY (`person`) )
 ENGINE = InnoDB;
