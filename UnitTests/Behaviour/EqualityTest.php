@@ -1,10 +1,10 @@
 <?php
 use \Glucose\Model as Model;
 require_once 'TableComparisonTestCase.class.php';
-require_once 'Components/Models/Country.class.php';
-require_once 'Components/Models/City.class.php';
-require_once 'Components/Models/Person.class.php';
-require_once 'Components/Models/User.class.php';
+require_once 'Models/Country.class.php';
+require_once 'Models/City.class.php';
+require_once 'Models/Person.class.php';
+require_once 'Models/User.class.php';
 
 class EqualityTest extends TableComparisonTestCase {
 	
