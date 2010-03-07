@@ -96,14 +96,14 @@ abstract class Model {
 	
 	public static function __callStatic($name, $arguments) {
 		if($name == 'getTableName')
-			throw new E\MethodExpectedException('The function Glucose\Model::getTableName() cannot be called from a static context unless implemented in a subclass.');
+			throw new E\MethodExpectedException('The method Glucose\Model::getTableName() cannot be called from a static context unless implemented in a subclass.');
 		
 		if(substr($name, 0, 6) == 'initBy') {
 			try {
-				if(static::$className == 'Model')
-					throw new E\VariableExpectedException('In order to initialize entities by unique identifiers, you will have to add the static variable $className.');
 				$tableName = static::getTableName();
 			} catch(E\MethodExpectedException $e) {
+				if(static::$className == 'Model')
+					throw new E\VariableExpectedException('In order to initialize entities by unique identifiers, you will have to add the static variable $className or implement the static method getTableName().');
 				$tableName = self::$inflector->tableize(static::$className);
 			}
 			if(!array_key_exists($tableName, self::$tables))
@@ -116,12 +116,12 @@ abstract class Model {
 					$camelized[] = self::$inflector->camelize($column->name);
 				if('initBy'.implode('And', $camelized) == $name)
 					if(count($constraint->columns) == count($arguments))
-						return new static::$className($table->select($arguments, $constraint));
+						return new static($table->select($arguments, $constraint));
 					else
 						$requiredNumberOfArguments = count($constraint->columns);
 			}
 			if(isset($requiredNumberOfArguments))
-				throw new E\InitializationArgumentException('The function \''.$name.'\' was called with '.count($arguments).' arguments but requires '.$requiredNumberOfArguments.'.');
+				throw new E\InitializationArgumentException('The method \''.$name.'\' was called with '.count($arguments).' arguments but requires '.$requiredNumberOfArguments.'.');
 		}
 		throw new E\UndefinedMethodException('Call to undefined method \''.$name.'\'.');
 	}

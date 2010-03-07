@@ -44,9 +44,10 @@ class Column {
 	 */
 	private $default;
 	
-	private $isAutoIncrement;
+	private $isAutoIncrement = false;
 	
-	private $onUpdateCurrentTimeStamp;
+	private $onUpdateCurrentTimestamp = false;
+	private $defaultCurrentTimestamp = false;
 	
 	/**
 	 * Constructs the column.
@@ -62,11 +63,12 @@ class Column {
 		$this->maxLength = $maxLength;
 		$this->notNull = $notNull;
 		$this->default = $default;
-		if(strtolower($extra) != 'auto_increment') {
-			$this->isAutoIncrement = false;
-			$this->onUpdateCurrentTimeStamp = strtolower($extra) == 'on update current_timestamp';
-		} else {
+		if(strtolower($extra) == 'auto_increment') {
 			$this->isAutoIncrement = true;
+		}
+		if($this->type == 'timestamp') {
+			$this->onUpdateCurrentTimestamp = strtolower($extra) == 'on update current_timestamp';
+			$this->defaultCurrentTimestamp = strtolower($this->default) == 'current_timestamp';
 		}
 	}
 	
@@ -92,8 +94,10 @@ class Column {
 				return $this->default;
 			case 'isAutoIncrement':
 				return $this->isAutoIncrement;
-			case 'onUpdateCurrentTimeStamp':
-				return $this->onUpdateCurrentTimeStamp;
+			case 'onUpdateCurrentTimestamp':
+				return $this->onUpdateCurrentTimestamp;
+			case 'defaultCurrentTimestamp':
+				return $this->defaultCurrentTimestamp;
 		}
 	}
 	

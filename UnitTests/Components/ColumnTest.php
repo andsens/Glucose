@@ -21,7 +21,7 @@ class ColumnTest extends PHPUnit_Framework_TestCase {
 		foreach($allTypes as $statementType => $types) {
 			foreach($types as $type) {
 				$column = new Column('column', $type, null, false, null);
-				$this->assertEquals($statementType, $column->statementType);
+				$this->assertEquals($statementType, $column->statementType, "The type $type is not categorized as $statementType");
 			}
 		}
 	}

@@ -102,9 +102,7 @@ class Field {
 	}
 	
 	public function dbInserted() {
-		if($this->setToDefault
-		&& $this->column->type == 'timestamp'
-		&& strtoupper($this->column->default) == 'CURRENT_TIMESTAMP') {
+		if($this->setToDefault && $this->column->defaultCurrentTimestamp) {
 			$this->updateModel = true;
 		} else {
 			$this->updateModel = false;
@@ -115,10 +113,8 @@ class Field {
 	}
 	
 	public function dbUpdated() {
-		if($this->column->onUpdateCurrentTimestamp && $this->updateDB
-		|| (	$this->setToDefault
-				&& $this->column->type == 'timestamp'
-				&& strtoupper($this->column->default) == 'CURRENT_TIMESTAMP')) {
+		if(($this->column->onUpdateCurrentTimestamp && $this->updateDB)
+		|| ($this->setToDefault && $this->column->defaultCurrentTimestamp)) {
 			$this->updateModel = true;
 		} else {
 			$this->updateModel = false;

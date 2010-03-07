@@ -265,10 +265,10 @@ End;
 			foreach($this->columns as $column)
 				if(in_array($column->name, $insertValuesColumnNames))
 					$placeholders[] = '?';
-				elseif(strtoupper($column->default) != 'CURRENT_TIMESTAMP')
-					$placeholders[] = "DEFAULT(`$column->name`)";
-				else
+				elseif($column->defaultCurrentTimestamp)
 					$placeholders[] = 'DEFAULT';
+				else
+					$placeholders[] = "DEFAULT(`$column->name`)";
 			$sql .= 'VALUES ('.$this->implode($placeholders, ',').')';
 			$stmt = self::$mysqli->prepare($sql);
 			if($stmt === false) throw MySQLErrorException::findClass(self::$mysqli);
@@ -443,10 +443,10 @@ End;
 			foreach($updateValuesColumnNames as $columnName)
 				$placeholders[] = "`$columnName`=?";
 			foreach($updateDefaultsColumnNames as $columnName)
-				if(strtoupper($this->columns[$columnName]->default) != 'CURRENT_TIMESTAMP')
-					$placeholders[] = "`$columnName`=DEFAULT(`$columnName`)";
-				else
+				if($this->columns[$columnName]->defaultCurrentTimestamp)
 					$placeholders[] = "`$columnName`=DEFAULT";
+				else
+					$placeholders[] = "`$columnName`=DEFAULT(`$columnName`)";
 			$sql .= 'SET '.implode(',', $placeholders);
 			$sql .= ' WHERE `'.implode('` = ? AND `', $this->primaryKeyConstraint->columns).'` = ?';
 			$stmt = self::$mysqli->prepare($sql);
