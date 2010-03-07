@@ -443,7 +443,7 @@ End;
 			foreach($updateValuesColumnNames as $columnName)
 				$placeholders[] = "`$columnName`=?";
 			foreach($updateDefaultsColumnNames as $columnName)
-				if(strtoupper($this->columns[$columnName]->default) != 'CURRENT_TIMESTAMP') // TODO: This is a bit ugly
+				if(strtoupper($this->columns[$columnName]->default) != 'CURRENT_TIMESTAMP')
 					$placeholders[] = "`$columnName`=DEFAULT(`$columnName`)";
 				else
 					$placeholders[] = "`$columnName`=DEFAULT";
