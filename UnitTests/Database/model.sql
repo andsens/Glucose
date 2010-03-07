@@ -28,12 +28,7 @@ CREATE  TABLE IF NOT EXISTS `cities` (
   `postal_code` SMALLINT NOT NULL ,
   PRIMARY KEY (`id`) ,
   INDEX `FK_cities__country` (`country` ASC) ,
-  UNIQUE INDEX `UNIQUE_cities__country__postal_code` (`country` ASC, `postal_code` ASC) ,
-  CONSTRAINT `FK_cities__country`
-    FOREIGN KEY (`country` )
-    REFERENCES `countries` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+  UNIQUE INDEX `UNIQUE_cities__country__postal_code` (`country` ASC, `postal_code` ASC) )
 ENGINE = InnoDB;
 
 
@@ -51,12 +46,7 @@ CREATE  TABLE IF NOT EXISTS `people` (
   `city` INT NOT NULL ,
   PRIMARY KEY (`id`) ,
   INDEX `FK_customers__city` (`city` ASC) ,
-  UNIQUE INDEX `UNIQUE_customers__email` (`email` ASC) ,
-  CONSTRAINT `FK_customers__city`
-    FOREIGN KEY (`city` )
-    REFERENCES `cities` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+  UNIQUE INDEX `UNIQUE_customers__email` (`email` ASC) )
 ENGINE = InnoDB;
 
 
@@ -71,13 +61,7 @@ CREATE  TABLE IF NOT EXISTS `users` (
   `password` CHAR(40) NOT NULL ,
   `registered` TIMESTAMP NOT NULL ,
   `last_login` TIMESTAMP NULL ,
-  PRIMARY KEY (`person`) ,
-  INDEX `FK_users__person` (`person` ASC) ,
-  CONSTRAINT `FK_users__person`
-    FOREIGN KEY (`person` )
-    REFERENCES `people` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+  PRIMARY KEY (`person`) )
 ENGINE = InnoDB;
 
 

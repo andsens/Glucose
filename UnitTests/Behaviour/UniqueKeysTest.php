@@ -1,6 +1,5 @@
 <?php
 use \Glucose\Model as Model;
-require_once 'TableComparisonTestCase.class.php';
 require_once 'Models/Country.class.php';
 require_once 'Models/City.class.php';
 require_once 'Models/Person.class.php';

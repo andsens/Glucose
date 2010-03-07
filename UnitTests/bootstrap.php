@@ -18,4 +18,14 @@ $GLOBALS['mysqli']->set_charset("utf8");
 $GLOBALS['schema'] = $matches['schema'];
 $GLOBALS['comparisonSchema'] = $matches['comparisonSchema'];
 Glucose\Model::connect($GLOBALS['mysqli']);
+
+spl_autoload_register(function($className) {
+	switch($className) {
+		case 'TableComparisonTestCase':
+			require_once dirname(__FILE__).'/TableComparisonTestCase.class.php';
+			return true;
+		default:
+			return false;
+	}
+});
 ?>

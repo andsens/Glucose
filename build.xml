@@ -1,22 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project name="Glucose" default="phpunit" basedir=".">
 	<property file="build.properties" />
+	
+	<target name="help">
+		<echo>Valid targets are:
+phpunit (default)	Builds the test tables runs the unit tests
+			with agile documentation and drops the tables.
 
+coverage		Builds the test tables runs the unit tests
+			generating coverage reports and drops the tables.
+
+tables		Builds the test tables.
+
+test		Runs the unit tests.
+
+cover		Generates a code coverage report.
+
+drop		Drop the test tables.
+		</echo>
+	</target>
+	
 	<target name="phpunit">
-		<antcall target="Build test tables" />
-		<antcall target="Run PHPUnit tests" />
-		<antcall target="Drop test tables" />
+		<antcall target="tables" />
+		<antcall target="test" />
+		<antcall target="drop" />
 	</target>
 	<target name="coverage">
-		<antcall target="Build test tables" />
-		<antcall target="Run PHPUnit tests with code coverage" />
-		<antcall target="Drop test tables" />
+		<antcall target="tables" />
+		<antcall target="cover" />
+		<antcall target="drop" />
 	</target>
+	
 	<target name="tables">
 		<antcall target="Build test tables" />
 	</target>
-	<target name="tests">
+	<target name="test">
 		<antcall target="Run PHPUnit tests" />
+	</target>
+	<target name="cover">
+		<antcall target="Run PHPUnit tests with code coverage" />
+	</target>
+	<target name="drop">
+		<antcall target="Drop test tables" />
 	</target>
 	
 	<target name="Run PHPUnit tests">
@@ -47,6 +72,14 @@
 			CREATE SCHEMA `${test.schema.comparison}`;
 		</sql>
 		<parallel>
+			<replaceregexp file="${test.sqlscript}"
+			               match="USE `model_unit_tests`;"
+			               replace=""
+			               byline="true"/>
+			<replaceregexp file="${test.sqlscript}"
+			               match="insert into \`model_unit_tests\`\."
+			               replace="insert into "
+			               byline="true"/>
 			<sql driver="com.mysql.jdbc.Driver"
 			     url="jdbc:mysql://${mysql.hostname}:${mysql.port}/${test.schema}"
 			     userid="${mysql.username}"

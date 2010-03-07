@@ -1,6 +1,4 @@
 <?php
-require_once 'TableComparisonTestCase.class.php';
-
 use \Glucose\Entity as Entity;
 class TableTest extends TableComparisonTestCase {
 	

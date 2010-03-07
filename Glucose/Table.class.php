@@ -408,7 +408,7 @@ End;
 		if(count($updateValuesColumnNames) == 0 && count($updateDefaultsColumnNames) == 0)
 			return;
 		$statementTypes .= $this->primaryKeyConstraint->statementTypes;
-		$statementValues[] = $entity->getDBValues($this->primaryKeyConstraint->columns);
+		$statementValues = array_merge($statementValues, $entity->getDBValues($this->primaryKeyConstraint->columns));
 		
 		$statementIdentifier = array_merge($updateValuesColumnNames, $updateDefaultsColumnNames);
 		$updateStatement = $this->primaryKeyConstraint->getUpdateStatement($statementIdentifier);
