@@ -60,21 +60,17 @@ abstract class Model {
 	 * @param mixed $primaryKeys Set of primary key values depending on the tables definition, it varies in size.
 	 */
 	public function __construct() {
-		if(static::$className != 'Model' && static::$className != get_class($this))
+		if(static::$className != self::$className && static::$className != get_class($this))
 			throw new E\UnexpectedValueException('There is a discrepancy between the actual class name (\''.get_class($this).'\') and the value of $className (\''.static::$className.'\').');
-		try {
-			$tableName = static::getTableName();
-		} catch(E\MethodExpectedException $e) {
-			$tableName = self::$inflector->tableize(get_class($this));
-		}
+		$tableName = static::getTableName();
 		if(!array_key_exists($tableName, self::$tables))
 			self::$tables[$tableName] = new Table($tableName);
 		$this->table = self::$tables[$tableName];
 		
 		$arguments = func_get_args();
-		if(count($arguments) == 1 && $arguments[0] instanceof Entity) {
-			$this->entity = $arguments[0];
-		} elseif(count($arguments) > 0) {
+		if(count($arguments) == 1 && is_array($arguments[0]))
+			$arguments = $arguments[0];
+		if(count($arguments) > 0) {
 			if(count($this->table->primaryKeyConstraint->columns) != count($arguments))
 				throw new E\ConstructorArgumentException('Wrong argument count.');
 			if(in_array(null, $arguments, true))
@@ -111,17 +107,53 @@ abstract class Model {
 			$table = self::$tables[$tableName];
 			
 			foreach($table->uniqueConstraints as $constraint) {
+				if($constraint == $table->primaryKeyConstraint)
+					continue;
 				$camelized = array();
 				foreach($constraint->columns as $column)
 					$camelized[] = self::$inflector->camelize($column->name);
 				if('initBy'.implode('And', $camelized) == $name)
 					if(count($constraint->columns) == count($arguments))
-						return new static($table->select($arguments, $constraint));
+						return new static($table->select($arguments, $constraint)->getValues($table->primaryKeyConstraint->columns));
 					else
 						$requiredNumberOfArguments = count($constraint->columns);
 			}
 			if(isset($requiredNumberOfArguments))
 				throw new E\InitializationArgumentException('The method \''.$name.'\' was called with '.count($arguments).' arguments but requires '.$requiredNumberOfArguments.'.');
+		}
+		throw new E\UndefinedMethodException('Call to undefined method \''.$name.'\'.');
+	}
+	
+	public function __call($name, $arguments) {
+		if($name == 'getTableName')
+			return self::$inflector->tableize(get_class($this));
+		
+		if(substr($name, 0, 3) == 'set') {
+			foreach($this->table->uniqueConstraints as $constraint) {
+				if(count($constraint->columns) < 2)
+					continue;
+				$camelized = array();
+				foreach($constraint->columns as $column)
+					$camelized[] = self::$inflector->camelize($column->name);
+				if('set'.implode('And', $camelized) == $name) {
+					if(count($constraint->columns) == count($arguments)) {
+						if(!in_array(null, $arguments, true) && $this->table->exists($arguments, $constraint))
+							throw new E\EntityCollisionException('Your changes collide with the unique values of an existing entity.');
+						foreach($constraint->columns as $index => $column)
+							$this->entity->fields[$column->name]->simulateChange($arguments[$index]);
+						foreach($constraint->columns as $index => $column)
+							if($arguments[$index] !== $this->entity->fields[$column->name]->value)
+								$this->entity->fields[$column->name]->modelValue = $arguments[$index];
+						$this->table->updateIdentifiers($this->entity);
+						return;
+					} else {
+						$requiredNumberOfArguments = count($constraint->columns);
+					}
+				}
+			}
+			if(isset($requiredNumberOfArguments))
+				throw new E\InitializationArgumentException('The method \''.$name.'\' was called with '.count($arguments).' arguments but requires '.$requiredNumberOfArguments.'.');
+			
 		}
 		throw new E\UndefinedMethodException('Call to undefined method \''.$name.'\'.');
 	}
@@ -139,11 +171,12 @@ abstract class Model {
 	public function __get($name) {
 		$name = Model::$inflector->underscore($name);
 		$this->canRead($name);
-		if($this->entity->fields[$name]->updateModel)
+		$field = $this->entity->fields[$name];
+		if($field->updateModel)
 			$this->table->syncWithDB($this->entity);
-		if($this->entity->fields[$name]->updateModel)
+		if($field->updateModel)
 			$this->table->refresh($this->entity);
-		return $this->entity->fields[$name]->value;
+		return $field->value;
 	}
 	
 	/**
@@ -156,9 +189,10 @@ abstract class Model {
 	public function __isset($name) {
 		$name = Model::$inflector->underscore($name);
 		$this->canRead($name);
-		if($this->entity->inDB && $this->entity->fields[$name]->updateModel)
+		$field = $this->entity->fields[$name];
+		if($this->entity->inDB && $field->updateModel)
 			$this->table->syncWithDB($this->entity);
-		return isset($this->entity->fields[$name]->value);
+		return isset($field->value);
 	}
 	
 	/**
@@ -170,52 +204,39 @@ abstract class Model {
 	public function __set($name, $value) {
 		$name = Model::$inflector->underscore($name);
 		$this->canModify($name);
-		if($value === $this->entity->fields[$name]->value)
+		$field = $this->entity->fields[$name];
+		if($value === $field->value)
 			return;
 		
 		foreach($this->table->uniqueConstraints as $constraint) {
-			foreach($constraint->columns as $index => $constraintColumn) {
-				if($this->entity->fields[$name]->column === $constraintColumn) {
-					$values = $this->entity->getValues($constraint->columns);
-					$values[$index] = $value;
-					if($this->table->exists($values, $constraint))
-						throw new E\EntityCollisionException('Your changes collide with the unique values of an existing entity.');
-					$this->entity->fields[$name]->modelValue = $value;
-					$this->table->updateIdentifiers($this->entity);
-					return;
-				}
+			if(false !== $index = array_search($field->column, $constraint->columns)) {
+				$values = $this->entity->getValues($constraint->columns);
+				$values[$index] = $value;
+				if(!in_array(null, $values, true) && $this->table->exists($values, $constraint))
+					throw new E\EntityCollisionException('Your changes collide with the unique values of an existing entity.');
+				$field->modelValue = $value;
+				$this->table->updateIdentifiers($this->entity);
+				return;
 			}
 		}
-		$this->entity->fields[$name]->modelValue = $value;
+		$field->modelValue = $value;
 	}
 	
 	/**
 	 * Unsets a field
-	 * @ignore
 	 * @param string $name Name of the field
 	 */
 	public function __unset($name) {
 		$name = Model::$inflector->underscore($name);
 		$this->canModify($name);
-		unset($this->entity->fields[$name]->value);
+		$field = $this->entity->fields[$name];
+		unset($field->value);
 		foreach($this->table->uniqueConstraints as $constraint) {
-			foreach($constraint->columns as $index => $constraintColumn) {
-				if($this->entity->fields[$name]->column === $constraintColumn) {
-					$this->table->updateIdentifiers($this->entity);
-					return;
-				}
+			if(in_array($field->column, $constraint->columns)) {
+				$this->table->updateIdentifiers($this->entity);
+				return;
 			}
 		}
-	}
-	
-	private function changeUniqueConstraintValues(array $values, Constraints\UniqueConstraint $constraint) {
-		// TODO: Can't do it like this
-		if($this->table->exists($values, $constraint))
-			throw new E\EntityCollisionException('Your changes collide with the unique values of an existing entity.');
-		foreach($constraint->columns as $index => $column)
-			if($values[$index] !== $this->entity->fields[$column->name]->value)
-				$this->entity->fields[$column->name]->modelValue = $values[$index];
-		$this->table->updateIdentifiers($this->entity);
 	}
 	
 	private function canRead($name) {

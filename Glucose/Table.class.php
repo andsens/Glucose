@@ -14,6 +14,8 @@
 namespace Glucose;
 use \Glucose\Exceptions\Table as E;
 use \Glucose\Exceptions\Entity as EE;
+// Workaround: A cryptic note on http://php.net/manual/en/language.oop5.autoload.php may be the explanation for this.
+require_once dirname(__FILE__).'/Exceptions/MySQL/MySQLErrorException.class.php';
 use \Glucose\Exceptions\MySQL\MySQLErrorException;
 use \Glucose\Exceptions\MySQL\MySQLConnectionException;
 class Table {
@@ -23,6 +25,8 @@ class Table {
 	 * @var mysqli
 	 */
 	private static $mysqli;
+	
+	const REQUIRED_MYSQL_VERSION = 50140;
 	
 	/**
 	 * Prepared statement that retrieves all columns and meta-information of a table.
@@ -80,12 +84,15 @@ class Table {
 	 * @param mysqli $mysqli MySQLi connection to the database
 	 */
 	public static function connect(\mysqli $mysqli) {
-		if($mysqli->connect_errno == 0) {
-			self::$mysqli = $mysqli;
-			self::prepareTableInformationRetrievalStatement();
-		} else {
+		if($mysqli->connect_errno != 0)
 			throw new MySQLConnectionException('The MySQLi instance is not connected to a database.');
-		}
+		if($mysqli->server_version == '')
+			throw new MySQLConnectionException('The MySQLi instance is not connected to a database.');
+		if($mysqli->server_version < self::REQUIRED_MYSQL_VERSION)
+			throw new MySQLConnectionException('Glucose only works with MySQL version '.self::REQUIRED_MYSQL_VERSION.
+			" or higher, the server you are trying to connect to is version $mysqli->server_version.");
+		self::$mysqli = $mysqli;
+		self::prepareTableInformationRetrievalStatement();
 	}
 	
 	/**
@@ -215,7 +222,7 @@ End;
 	}
 	
 	private function bindAndExecute(\mysqli_stmt $statement, $types, array $values) {
-		$statementValues = array(&$types);
+		$statementValues = array($types);
 		foreach($values as &$value)
 			$statementValues[] = &$value;
 		$noParams = count($values);
@@ -275,13 +282,10 @@ End;
 			$this->insertStatements[$statementIdentifier] = $stmt;
 		}
 		$this->bindAndExecute($this->insertStatements[$statementIdentifier], $statementTypes, $statementValues);
-		if(self::$mysqli->insert_id > 0) {
-			foreach($entity->fields as $columnName => $field) {
-				if($field->column->isAutoIncrement) {
-					$field->dbValue = self::$mysqli->insert_id;
-				}
-				$field->dbInserted();
-			}
+		foreach($entity->fields as $columnName => $field) {
+			if($field->column->isAutoIncrement && self::$mysqli->insert_id > 0)
+				$field->dbValue = self::$mysqli->insert_id;
+			$field->dbInserted();
 		}
 		$entity->inDB = true;
 		$this->entityEngine->updateIdentifiersDB($entity);
@@ -299,6 +303,8 @@ End;
 	public function select(array $uniqueValues, Constraints\UniqueConstraint $constraint) {
 		if(!in_array($constraint, $this->uniqueConstraints, true))
 			throw new E\InvalidUniqueConstraintException('The unique constraint does not match any constraint in the table.');
+		if(in_array(null, $uniqueValues, true))
+			throw new E\InvalidUniqueValuesException('Unique values cannot be null.');
 		
 		$entity = $this->entityEngine->findModel($uniqueValues, $constraint);
 		if($entity !== null)
@@ -369,15 +375,16 @@ End;
 		if(empty($refreshColumnNames))
 			return;
 		$constraint = $this->primaryKeyConstraint;
-		if($constraint->getRefreshStatement($refreshColumnNames) === null) {
+		$statementIdentifier = Column::createHash($refreshColumnNames);
+		if(!array_key_exists($statementIdentifier, $constraint->refreshStatements)) {
 			$sql = 'SELECT `'.implode('`, `', $refreshColumnNames).'` ';
 			$sql .= 'FROM `'.$this->databaseName.'`.`'.$this->tableName.'` ';
 			$sql .= 'WHERE `'.implode('` = ? AND `', $constraint->columns).'` = ?';
 			$stmt = self::$mysqli->prepare($sql);
 			if($stmt === false) throw MySQLErrorException::findClass(self::$mysqli);
-			$constraint->setRefreshStatement($refreshColumnNames, $stmt);
+			$constraint->refreshStatements[$statementIdentifier] = $stmt;
 		}
-		$refreshStatement = $constraint->getRefreshStatement($refreshColumnNames);
+		$refreshStatement = $constraint->refreshStatements[$statementIdentifier];
 		
 		$entityValues = array();
 		foreach($constraint->columns as $column)
@@ -435,9 +442,8 @@ End;
 		$statementTypes .= $this->primaryKeyConstraint->statementTypes;
 		$statementValues = array_merge($statementValues, $entity->getDBValues($this->primaryKeyConstraint->columns));
 		
-		$statementIdentifier = array_merge($updateValuesColumnNames, $updateDefaultsColumnNames);
-		$updateStatement = $this->primaryKeyConstraint->getUpdateStatement($statementIdentifier);
-		if($updateStatement == null) {
+		$statementIdentifier = Column::createHash($updateValuesColumnNames).Column::createHash($updateDefaultsColumnNames);
+		if(!array_key_exists($statementIdentifier, $this->primaryKeyConstraint->updateStatements)) {
 			$sql = 'UPDATE `'.$this->databaseName.'`.`'.$this->tableName.'` ';
 			$placeholders = array();
 			foreach($updateValuesColumnNames as $columnName)
@@ -451,9 +457,9 @@ End;
 			$sql .= ' WHERE `'.implode('` = ? AND `', $this->primaryKeyConstraint->columns).'` = ?';
 			$stmt = self::$mysqli->prepare($sql);
 			if($stmt === false) throw MySQLErrorException::findClass(self::$mysqli);
-			$updateStatement = $stmt;
-			$this->primaryKeyConstraint->setUpdateStatement($statementIdentifier, $updateStatement);
+			$this->primaryKeyConstraint->updateStatements[$statementIdentifier] = $stmt;
 		}
+		$updateStatement = $this->primaryKeyConstraint->updateStatements[$statementIdentifier];
 		$this->bindAndExecute($updateStatement, $statementTypes, $statementValues);
 		$numberOfRowsAffected = $updateStatement->affected_rows;
 		if($numberOfRowsAffected < 1) {
@@ -493,6 +499,8 @@ End;
 	}
 	
 	public function exists(array $uniqueValues, Constraints\UniqueConstraint $constraint) {
+		if(in_array(null, $uniqueValues, true))
+			throw new E\InvalidUniqueValuesException('Unique values cannot be null.');
 		$fromModel = $this->entityEngine->findModel($uniqueValues, $constraint);
 		if($fromModel !== null && !$fromModel->deleted)
 			return true;

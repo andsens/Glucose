@@ -33,15 +33,15 @@ class Entity {
 	
 	public function getValues(array $columns) {
 		$values = array();
-		foreach($columns as $index => $column)
-			$values[$index] = $this->fields[$column->name]->value;
+		foreach($columns as $column)
+			$values[] = $this->fields[$column->name]->value;
 		return $values;
 	}
 	
 	public function getDBValues(array $columns) {
 		$values = array();
-		foreach($columns as $name => $column)
-			$values[$name] = $this->fields[$column->name]->dbValue;
+		foreach($columns as $column)
+			$values[] = $this->fields[$column->name]->dbValue;
 		return $values;
 	}
 	

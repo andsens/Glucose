@@ -20,42 +20,10 @@ class UniqueConstraint extends Constraint {
 	
 	public $existenceStatement;
 	
-	private $updateStatements = array();
+	public $updateStatements = array();
 	
-	private $refreshStatements = array();
+	public $refreshStatements = array();
 	
 	public $deleteStatement;
-	
-	public function setUpdateStatement(array $columnNames, \mysqli_stmt $statement) {
-		$this->updateStatements[\Glucose\Column::createHash($columnNames)] = $statement;
-	}
-	
-	public function getUpdateStatement(array $columnNames) {
-		return $this->getStatement($this->updateStatements, $columnNames);
-	}
-	
-	public function setInsertStatement(array $columnNames, \mysqli_stmt $statement) {
-		$this->insertStatements[\Glucose\Column::createHash($columnNames)] = $statement;
-	}
-	
-	public function getInsertStatement(array $columnNames) {
-		return $this->getStatement($this->insertStatements, $columnNames);
-	}
-	
-	public function setRefreshStatement(array $columnNames, \mysqli_stmt $statement) {
-		$this->refreshStatements[\Glucose\Column::createHash($columnNames)] = $statement;
-	}
-	
-	public function getRefreshStatement(array $columnNames) {
-		return $this->getStatement($this->refreshStatements, $columnNames);
-	}
-	
-	private function getStatement(array $statementPool, array $columnNames) {
-		$hash = \Glucose\Column::createHash($columnNames);
-		if(array_key_exists($hash, $statementPool))
-			return $statementPool[$hash];
-		else
-			return null;
-	}
 }
 ?>

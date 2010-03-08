@@ -47,6 +47,10 @@ class Field {
 		$this->currentValue = $this->column->default;
 	}
 	
+	public function simulateChange() {
+		
+	}
+	
 	public function __get($name) {
 		switch($name) {
 			case 'column':
@@ -85,7 +89,7 @@ class Field {
 		if($name == 'value') {
 			$this->setToDefault = true;
 			$this->updateDB = true;
-			if($this->column->type == 'timestamp' && strtoupper($this->column->default) == 'CURRENT_TIMESTAMP')
+			if($this->column->defaultCurrentTimestamp)
 				$this->updateModel = true;
 			elseif($this->column->isAutoIncrement)
 				$this->currentValue = 0;

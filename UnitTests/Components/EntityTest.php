@@ -29,7 +29,7 @@ class EntityTest extends PHPUnit_Framework_TestCase {
 		$denmark = new Entity(self::$columns['countries']);
 		$denmark->fields['id']->modelValue = 1;
 		$denmark->fields['name']->modelValue = 'Denmark';
-		$expected = array('id' => 1, 'name' => 'Denmark');
+		$expected = array(1, 'Denmark');
 		$columnsToRetrieve = array('id' => self::$columns['countries']['id'], 'name' => self::$columns['countries']['name']);
 		$this->assertEquals($expected, $denmark->getValues($columnsToRetrieve));
 	}
@@ -38,7 +38,7 @@ class EntityTest extends PHPUnit_Framework_TestCase {
 		$denmark = new Entity(self::$columns['countries']);
 		$denmark->fields['id']->dbValue = 1;
 		$denmark->fields['name']->dbValue = 'Denmark';
-		$expected = array('id' => 1, 'name' => 'Denmark');
+		$expected = array(1, 'Denmark');
 		$this->assertEquals($expected, $denmark->getDBValues(self::$columns['countries']));
 	}
 	

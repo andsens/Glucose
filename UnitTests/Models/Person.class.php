@@ -10,5 +10,6 @@
  *
  */
 class Person extends Glucose\Model {
+	public static $className = 'Person';
 }
 ?>
