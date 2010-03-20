@@ -30,7 +30,7 @@ class ImmutableArrayObject extends \ArrayObject {
 	}
 	
 	public function offsetGet($offset) {
-		if(parent::offsetExists($offset))
+		if($this->offsetExists($offset))
 			return parent::offsetGet($offset);
 		throw new \OutOfBoundsException('The offset you are trying to access does not exist.');
 	}
