@@ -6,7 +6,7 @@
  * @subpackage glucose.exceptions.user
  */
 namespace Glucose\Exceptions\User;
-interface UndefinedFieldException extends UserException {
+class UndefinedPropertyException extends \RuntimeException implements UndefinedFieldException {
 	
 }
 ?>

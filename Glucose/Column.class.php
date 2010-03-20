@@ -128,11 +128,14 @@ class Column {
 		}
 	}
 	
-	public static function createHash(array $columnNames) {
-		$compoundHash = '';
-		foreach($columnNames as $columnName)
-			$compoundHash .= sha1($columnName);
-		return sha1($compoundHash);
+	public function simulateAssignment($value) {
+		if($value === null && $this->notNull) {
+			
+		}
+	}
+	
+	public function simulateUnset() {
+		
 	}
 	
 	/**

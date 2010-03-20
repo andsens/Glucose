@@ -100,6 +100,45 @@ class BasicInteractionTest extends TableComparisonTestCase {
 		unset($country);
 	}
 	
+	public function test_N_ReadUndefinedField() {
+		$country = new Country;
+		$message = '';
+		try {
+			$blah = $country->postalCode;
+		} catch(\Glucose\Exceptions\User\UndefinedPropertyException $e) {
+			$message = $e->getMessage();
+		}
+		$country->delete();
+		$this->assertEquals("The field 'postalCode' does not exists.", $message);
+		$this->assertFalse(isset($blah));
+	}
+	
+	public function test_N_ModifyUndefinedField() {
+		$country = new Country;
+		$message = '';
+		try {
+			$country->postalCode = 1534;
+		} catch(\Glucose\Exceptions\User\UndefinedPropertyException $e) {
+			$message = $e->getMessage();
+		}
+		$country->delete();
+		$this->assertEquals("The field 'postalCode' does not exists.", $message);
+	}
+	
+	public function test_N_ReadDeleted() {
+		$arhus = new City(1);
+		$arhus->delete();
+		$this->setExpectedException('\Glucose\Exceptions\User\EntityDeletedException', "This entity has been deleted. You can no longer read its fields.");
+		$name = $arhus->name;
+	}
+	
+	public function test_N_ModifyDeleted() {
+		$arhus = new City(1);
+		$arhus->delete();
+		$this->setExpectedException('\Glucose\Exceptions\User\EntityDeletedException', "This entity has been deleted. You can no longer modify its fields.");
+		$arhus->name = 'SomethingElse';
+	}
+	
 	protected function tearDown() {
 		self::$mysqli->query('ROLLBACK;');
 	}

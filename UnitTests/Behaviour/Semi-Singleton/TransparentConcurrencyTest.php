@@ -35,7 +35,7 @@ class TransparentConcurrencyTest extends TableComparisonTestCase {
 		$this->assertEquals('Dublin', $dublin->name);
 	}
 	
-	public function test_P_NoChangeOnCollision() {
+	public function test_N_NoChangeOnCollision() {
 		$aarhus = new City(1);
 		$hamburg = new City(2);
 		try {
@@ -44,7 +44,7 @@ class TransparentConcurrencyTest extends TableComparisonTestCase {
 		$this->assertEquals(1, $aarhus->id);
 	}
 	
-	public function test_P_DBConsolidationForCollisionDetection() {
+	public function test_N_DBConsolidationForCollisionDetection() {
 		$aarhus = new City(1);
 		$this->setExpectedException('\Glucose\Exceptions\User\EntityCollisionException', 'Your changes collide with the unique values of an existing entity.');
 		$aarhus->id = 4;

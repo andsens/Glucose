@@ -5,17 +5,15 @@
  * This is the worker class of the framework.
  * It is the only class, that should communicate with the database.
  * @author andsens
- * @package glucose
  *
  * @property-read array $columns Indexed array of all {@link Column columns} in the table, ordered by how they appear in the table
  * @property-read Constraints\PrimaryKeyConstraint $primaryKeyConstraint {@link Constraint constraint} specifying the {@link Constraints\PrimaryKeyConstraint primary key constraint} of the table
  * @property-read array $uniqueConstraints {@link Constraint constraint} specifying the {@link Constraints\UniqueKeyConstraint unqiue constraints} of the table
  */
-namespace Glucose;
+namespace Glucose {
 use \Glucose\Exceptions\Table as E;
 use \Glucose\Exceptions\Entity as EE;
-// Workaround: A cryptic note on http://php.net/manual/en/language.oop5.autoload.php may be the explanation for this.
-require_once dirname(__FILE__).'/Exceptions/MySQL/MySQLErrorException.class.php';
+require_once dirname(__FILE__).'/Exceptions/MySQL/MySQLErrorException.class.php'; // Workaround
 use \Glucose\Exceptions\MySQL\MySQLErrorException;
 use \Glucose\Exceptions\MySQL\MySQLConnectionException;
 class Table {
@@ -244,6 +242,13 @@ End;
 		return substr($string, 0, -strlen($glue));
 	}
 	
+	private static function createColumnHash(array $columnNames) {
+		$compoundHash = '';
+		foreach($columnNames as $columnName)
+			$compoundHash .= sha1($columnName);
+		return sha1($compoundHash);
+	}
+	
 	/**
 	 * INSERTs a set of data into the table.
 	 * @param array $insertValues Full set of values as an indexed array
@@ -264,7 +269,7 @@ End;
 			}
 		}
 		
-		$statementIdentifier = Column::createHash($insertValuesColumnNames);
+		$statementIdentifier = $this->createColumnHash($insertValuesColumnNames);
 		if(!array_key_exists($statementIdentifier, $this->insertStatements)) {
 			$sql = 'INSERT INTO `'.$this->databaseName.'`.`'.$this->tableName.'` ';
 			$sql .= '('.$this->implode($this->columns, ',', '`').') ';
@@ -375,7 +380,7 @@ End;
 		if(empty($refreshColumnNames))
 			return;
 		$constraint = $this->primaryKeyConstraint;
-		$statementIdentifier = Column::createHash($refreshColumnNames);
+		$statementIdentifier = $this->createColumnHash($refreshColumnNames);
 		if(!array_key_exists($statementIdentifier, $constraint->refreshStatements)) {
 			$sql = 'SELECT `'.implode('`, `', $refreshColumnNames).'` ';
 			$sql .= 'FROM `'.$this->databaseName.'`.`'.$this->tableName.'` ';
@@ -442,7 +447,9 @@ End;
 		$statementTypes .= $this->primaryKeyConstraint->statementTypes;
 		$statementValues = array_merge($statementValues, $entity->getDBValues($this->primaryKeyConstraint->columns));
 		
-		$statementIdentifier = Column::createHash($updateValuesColumnNames).Column::createHash($updateDefaultsColumnNames);
+		$statementIdentifier =
+			$this->createColumnHash($updateValuesColumnNames).
+			$this->createColumnHash($updateDefaultsColumnNames);
 		if(!array_key_exists($statementIdentifier, $this->primaryKeyConstraint->updateStatements)) {
 			$sql = 'UPDATE `'.$this->databaseName.'`.`'.$this->tableName.'` ';
 			$placeholders = array();
@@ -560,5 +567,6 @@ End;
 				throw $e;
 		}
 	}
+}
 }
 ?>

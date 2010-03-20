@@ -47,10 +47,6 @@ class Field {
 		$this->currentValue = $this->column->default;
 	}
 	
-	public function simulateChange() {
-		
-	}
-	
 	public function __get($name) {
 		switch($name) {
 			case 'column':
