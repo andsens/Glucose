@@ -5,7 +5,7 @@ require_once 'Models/City.class.php';
 require_once 'Models/Person.class.php';
 require_once 'Models/User.class.php';
 
-class BasicTest extends TableComparisonTestCase {
+class BasicInteractionTest extends TableComparisonTestCase {
 	
 	private static $mysqli;
 	
