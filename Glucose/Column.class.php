@@ -3,7 +3,7 @@
  * Corresponds to a column in a table.
  * This class holds information about a specific column in a table.
  * @author andsens
- * @package glucose
+ * @package Glucose
  *
  * @property-read string $name Column name
  * @property-read string $type MySQL type of the column
@@ -25,6 +25,8 @@ class Column {
 	 * @var string
 	 */
 	private $type;
+	
+	private $statementType;
 	
 	/**
 	 * Maximum length of the column
@@ -70,6 +72,30 @@ class Column {
 			$this->onUpdateCurrentTimestamp = strtolower($extra) == 'on update current_timestamp';
 			$this->defaultCurrentTimestamp = strtolower($this->default) == 'current_timestamp';
 		}
+		switch($this->type) {
+			case 'tinyint':
+			case 'smallint':
+			case 'mediumint':
+			case 'int':
+			case 'bigint':
+				$this->statementType = 'i';
+				break;
+			case 'real':
+			case 'double':
+			case 'float':
+			case 'decimal':
+				$this->statementType = 'd';
+				break;
+			case 'tinyblob':
+			case 'mediumblob':
+			case 'blob':
+			case 'longblob':
+				$this->statementType = 'b';
+				break;
+			default:
+				$this->statementType = 's';
+				break;
+		}
 	}
 	
 	/**
@@ -85,7 +111,7 @@ class Column {
 			case 'type':
 				return $this->type;
 			case 'statementType':
-				return $this->getStatementType();
+				return $this->statementType;
 			case 'maxLength':
 				return $this->maxLength;
 			case 'notNull':
@@ -101,40 +127,13 @@ class Column {
 		}
 	}
 	
-	/**
-	 * Computes the prepared statement type based on the MySQL type.
-	 * @return The type for a prepared statement
-	 */
-	private function getStatementType() {
-		switch($this->type) {
-			case 'tinyint':
-			case 'smallint':
-			case 'mediumint':
-			case 'int':
-			case 'bigint':
-				return 'i';
-			case 'real':
-			case 'double':
-			case 'float':
-			case 'decimal':
-				return 'd';
-			case 'tinyblob':
-			case 'mediumblob':
-			case 'blob':
-			case 'longblob':
-				return 'b';
-			default:
-				return 's';
-		}
-	}
-	
-	public function simulateAssignment($value) {
+	public function testValueType($value) {
 		if($value === null && $this->notNull) {
 			
 		}
 	}
 	
-	public function simulateUnset() {
+	public function testValueUnset() {
 		
 	}
 	

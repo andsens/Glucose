@@ -74,7 +74,8 @@ abstract class Model {
 				throw new E\ConstructorArgumentException('Wrong argument count.');
 			if(in_array(null, $arguments, true))
 				throw new E\ConstructorArgumentException('Illegal argument [null].');
-			
+			foreach($this->table->primaryKeyConstraint->columns as $index => $column)
+				$column->testValueType($arguments[$index]);
 			try {
 				$this->entity = $this->table->select($arguments, $this->table->primaryKeyConstraint);
 				if($this->entity->deleted)
@@ -111,11 +112,15 @@ abstract class Model {
 				$camelized = array();
 				foreach($constraint->columns as $column)
 					$camelized[] = self::$inflector->camelize($column->name);
-				if('initBy'.implode('And', $camelized) == $name)
-					if(count($constraint->columns) == count($arguments))
+				if('initBy'.implode('And', $camelized) == $name) {
+					if(count($constraint->columns) == count($arguments)) {
+						foreach($constraint->columns as $index => $column)
+							$column->testValueType($arguments[$index]);
 						return new static($table->select($arguments, $constraint)->getValues($table->primaryKeyConstraint->columns));
-					else
+					} else {
 						$requiredNumberOfArguments = count($constraint->columns);
+					}
+				}
 			}
 			if(isset($requiredNumberOfArguments))
 				throw new E\InitializationArgumentException('The method \''.$name.'\' was called with '.count($arguments).' arguments but requires '.$requiredNumberOfArguments.'.');
@@ -142,7 +147,7 @@ abstract class Model {
 						if(!in_array(null, $arguments, true) && $this->table->exists($arguments, $constraint))
 							throw new E\EntityCollisionException('Your changes collide with the unique values of an existing entity.');
 						foreach($constraint->columns as $index => $column)
-							$column->simulateAssignment($arguments[$index]);
+							$column->testValueType($arguments[$index]);
 						foreach($constraint->columns as $index => $column)
 							if($arguments[$index] !== $this->entity->fields[$column->name]->value)
 								$this->entity->fields[$column->name]->modelValue = $arguments[$index];
@@ -209,7 +214,7 @@ abstract class Model {
 		$field = $this->entity->fields[$name];
 		if($value === $field->value)
 			return;
-		$field->column->simulateAssignment($value);
+		$field->column->testValueType($value);
 		foreach($this->table->uniqueConstraints as $constraint) {
 			if(false !== $index = array_search($field->column, $constraint->columns)) {
 				$values = $this->entity->getValues($constraint->columns);
@@ -232,7 +237,7 @@ abstract class Model {
 		$name = Model::$inflector->underscore($name);
 		$this->simulateModify($name);
 		$field = $this->entity->fields[$name];
-		$field->column->simulateUnset();
+		$field->column->testValueUnset();
 		unset($field->value);
 		foreach($this->table->uniqueConstraints as $constraint) {
 			if(in_array($field->column, $constraint->columns)) {

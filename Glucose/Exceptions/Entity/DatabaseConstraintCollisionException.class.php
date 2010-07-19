@@ -6,7 +6,6 @@
  * @subpackage glucose.exceptions.entity
  */
 namespace Glucose\Exceptions\Entity;
-class DatabaseConstraintCollisionException extends \LogicException {
+class DatabaseConstraintCollisionException extends \LogicException implements EntityException {
 	
 }
-?>

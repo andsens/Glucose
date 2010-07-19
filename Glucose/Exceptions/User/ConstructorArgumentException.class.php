@@ -2,8 +2,8 @@
 /**
  *
  * @author andsens
- * @package glucose
- * @subpackage glucose.exceptions.user
+ * @package Glucose.Exceptions.User
+ * @subpackage Glucose.Exceptions.User
  */
 namespace Glucose\Exceptions\User;
 class ConstructorArgumentException extends \InvalidArgumentException implements ArgumentException {
