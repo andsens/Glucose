@@ -143,4 +143,3 @@ class BasicInteractionTest extends TableComparisonTestCase {
 		self::$mysqli->query('ROLLBACK;');
 	}
 }
-?>

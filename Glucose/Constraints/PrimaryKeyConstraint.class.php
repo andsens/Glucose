@@ -10,4 +10,3 @@
 namespace Glucose\Constraints;
 class PrimaryKeyConstraint extends UniqueConstraint {
 }
-?>

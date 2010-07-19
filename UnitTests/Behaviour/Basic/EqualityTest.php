@@ -44,4 +44,3 @@ class EqualityTest extends TableComparisonTestCase {
 		self::$mysqli->query('ROLLBACK;');
 	}
 }
-?>

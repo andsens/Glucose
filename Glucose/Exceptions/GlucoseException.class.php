@@ -8,4 +8,3 @@ namespace Glucose\Exceptions;
 interface GlucoseException {
 	
 }
-?>

@@ -79,4 +79,3 @@ class TypeCheckingTest extends PHPUnit_Framework_TestCase {
 		self::$mysqli->query('ROLLBACK;');
 	}
 }
-?>

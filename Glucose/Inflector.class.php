@@ -517,4 +517,3 @@ class Inflector {
 	function __enclose($string) {
 		return '(?:' . $string . ')';
 	}
-?>

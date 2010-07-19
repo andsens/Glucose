@@ -9,4 +9,3 @@ namespace Glucose\Exceptions\User;
 interface UndefinedFieldException extends UserException {
 	
 }
-?>

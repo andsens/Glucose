@@ -6,4 +6,3 @@
  */
 class User extends Glucose\Model {
 }
-?>

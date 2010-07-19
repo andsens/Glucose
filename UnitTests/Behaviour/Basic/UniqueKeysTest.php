@@ -92,4 +92,3 @@ class UniqueKeysTest extends TableComparisonTestCase {
 		self::$mysqli->query('ROLLBACK;');
 	}
 }
-?>

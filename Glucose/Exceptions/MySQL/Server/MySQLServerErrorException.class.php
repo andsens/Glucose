@@ -25,4 +25,3 @@ class MySQLServerErrorException extends \Glucose\Exceptions\MySQL\MySQLErrorExce
 		return $exception;
 	}
 }
-?>

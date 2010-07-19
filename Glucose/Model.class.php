@@ -270,4 +270,3 @@ abstract class Model {
 	}
 }
 }
-?>

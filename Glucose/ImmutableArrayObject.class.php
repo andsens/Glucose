@@ -52,4 +52,3 @@ class ImmutableArrayObject extends \ArrayObject {
 		throw new BadMethodCallException($this->cannotAlterMessage);
 	}
 }
-?>

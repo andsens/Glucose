@@ -26,4 +26,3 @@ class UniqueConstraint extends Constraint {
 	
 	public $deleteStatement;
 }
-?>

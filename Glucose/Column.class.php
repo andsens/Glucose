@@ -146,4 +146,3 @@ class Column {
 		return $this->name;
 	}
 }
-?>

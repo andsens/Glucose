@@ -17,4 +17,3 @@ class MySQLClientErrorException extends \Glucose\Exceptions\MySQL\MySQLErrorExce
 		return new MySQLClientErrorException($mysqli->error, $mysqli->errno);
 	}
 }
-?>

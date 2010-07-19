@@ -9,4 +9,3 @@ namespace Glucose\Exceptions\User;
 interface ArgumentException extends UserException {
 	
 }
-?>

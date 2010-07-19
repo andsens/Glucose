@@ -128,4 +128,3 @@ class EntityEngine {
 		return sha1($compoundHash);
 	}
 }
-?>

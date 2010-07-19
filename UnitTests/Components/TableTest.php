@@ -232,4 +232,3 @@ class TableTest extends TableComparisonTestCase {
 		self::$mysqli ->query('ROLLBACK;');
 	}
 }
-?>

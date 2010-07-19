@@ -24,4 +24,3 @@ class MySQLErrorException extends MySQLException {
 		return $exception;
 	}
 }
-?>

@@ -54,4 +54,3 @@ class TransparentConcurrencyTest extends TableComparisonTestCase {
 		self::$mysqli->query('ROLLBACK;');
 	}
 }
-?>

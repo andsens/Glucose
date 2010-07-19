@@ -11,4 +11,3 @@
 class City extends Glucose\Model {
 	protected static $className = 'City';
 }
-?>
