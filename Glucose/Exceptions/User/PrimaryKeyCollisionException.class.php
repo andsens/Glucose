@@ -6,6 +6,6 @@
  * @subpackage glucose.exceptions.user
  */
 namespace Glucose\Exceptions\User;
-class PrimaryKeyCollisionException extends DuplicateEntityException {
+class PrimaryKeyCollisionException extends \Glucose\Exceptions\Entity\DuplicateEntityException {
 	
 }

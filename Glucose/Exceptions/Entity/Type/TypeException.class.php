@@ -6,6 +6,6 @@
  * @subpackage glucose.exceptions.entity.type
  */
 namespace Glucose\Exceptions\Entity\Type;
-interface TypeException extends EntityException {
+interface TypeException extends \Glucose\Exceptions\Entity\EntityException {
 	
 }

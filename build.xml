@@ -1,64 +1,48 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project name="Glucose" default="phpunit" basedir=".">
+<project name="Glucose" default="test" basedir=".">
 	<property file="build.properties" />
 	
 	<target name="help">
 		<echo>Valid targets are:
-phpunit (default)	Builds the test tables runs the unit tests
+test (default)	Builds the test tables runs the unit tests
 			with agile documentation and drops the tables.
 
 coverage		Builds the test tables runs the unit tests
 			generating coverage reports and drops the tables.
 
+loc			Counts the lines of PHP code in the project.
+
+cpd			Detects copy&amp;paste code.
+
 tables		Builds the test tables.
-
-test		Runs the unit tests.
-
-cover		Generates a code coverage report.
 
 drop		Drop the test tables.
 		</echo>
 	</target>
 	
-	<target name="phpunit">
+	<target name="test">
 		<antcall target="tables" />
-		<antcall target="test" />
+		<echo>Running PHPUnit tests</echo>
+		<exec dir="${test.dir}" executable="${phpunit}">
+			<arg value="--colors" />
+			<arg line="--testdox-html ${report.agiledoc.file}" />
+		</exec>
 		<antcall target="drop" />
 	</target>
+	
 	<target name="coverage">
 		<antcall target="tables" />
-		<antcall target="cover" />
+		<echo>Running PHPUnit tests with code coverage</echo>
+		<mkdir dir="${report.coverage.dir}"/>
+		<exec dir="${test.dir}" executable="${phpunit}">
+			<arg value="--colors" />
+			<arg line="--coverage-html ${report.coverage.dir}" />
+		</exec>
 		<antcall target="drop" />
 	</target>
 	
 	<target name="tables">
-		<antcall target="Build test tables" />
-	</target>
-	<target name="test">
-		<antcall target="Run PHPUnit tests" />
-	</target>
-	<target name="cover">
-		<antcall target="Run PHPUnit tests with code coverage" />
-	</target>
-	<target name="drop">
-		<antcall target="Drop test tables" />
-	</target>
-	
-	<target name="Run PHPUnit tests">
-		<exec dir="${test.dir}" executable="${phpunit.executable}">
-			<arg value="--colors" />
-			<arg line="--testdox-html ${report.agiledoc.file}" />
-		</exec>
-	</target>
-	
-	<target name="Run PHPUnit tests with code coverage">
-		<exec dir="${test.dir}" executable="${phpunit.executable}">
-			<arg line="--coverage-html ${report.coverage.dir}" />
-			<arg value="--colors" />
-		</exec>
-	</target>
-	
-	<target name="Build test tables">
+		<echo>Building test tables</echo>
 		<sql driver="com.mysql.jdbc.Driver"
 		     url="jdbc:mysql://${mysql.hostname}:${mysql.port}"
 		     userid="${mysql.username}"
@@ -103,7 +87,8 @@ drop		Drop the test tables.
 		</parallel>
 	</target>
 	
-	<target name="Drop test tables">
+	<target name="drop">
+		<echo>Dropping test tables</echo>
 		<sql driver="com.mysql.jdbc.Driver"
 		     url="jdbc:mysql://${mysql.hostname}:${mysql.port}"
 		     userid="${mysql.username}"
@@ -114,5 +99,38 @@ drop		Drop the test tables.
 			DROP SCHEMA `${test.schema}`;
 			DROP SCHEMA `${test.schema.comparison}`;
 		</sql>
+	</target>
+
+	<target name="loc">
+		<echo>Counting lines of code</echo>
+		<exec dir="${report.dir}" executable="${phploc}">
+			<arg line="--log-xml ${report.loc.file}" />
+			<arg line="--suffixes php" />
+			<arg value="${src.dir}" />
+		</exec>
+	</target>
+	
+	<target name="cpd">
+		<echo>Detecting copy&amp;pasted code lines of code</echo>
+		<exec dir="${report.dir}" executable="${phpcpd}">
+			<arg line="--log-pmd ${report.cpd.file}" />
+			<arg line="--min-lines 3" />
+			<arg line="--min-tokens 15" />
+			<arg line="--suffixes php" />
+			<arg value="${src.dir}" />
+		</exec>
+	</target>
+	
+	<target name="dependency">
+		<echo></echo>
+		<mkdir dir="${report.depend.dir}"/>
+		<exec dir="${report.dir}" executable="${phpdep}">
+			<arg line="--jdepend-chart=${report.depend.dir}/chart.svg" />
+			<arg line="--jdepend-xml=${report.depend.dir}/log.xml" />
+			<arg line="--overview-pyramid=${report.depend.dir}/pyramid.svg" />
+			<arg line="--phpunit-xml=${report.depend.dir}/metrics.xml" />
+			<arg line="--summary-xml=${report.depend.dir}/summary.xml" />
+			<arg value="${src.dir}" />
+		</exec>
 	</target>
 </project>
