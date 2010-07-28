@@ -13,6 +13,7 @@
  * @property-read mixed $default Default value
  */
 namespace Glucose;
+use \Glucose\Exceptions\User as E;
 class Column {
 	/**
 	 * Name of the column

@@ -6,7 +6,7 @@
  * with classes matching the names of database tables.
  * @author andsens
  */
-namespace Glucose {
+namespace Glucose;
 use \Glucose\Exceptions\User as E;
 use \Glucose\Exceptions\Table as TE;
 abstract class Model {
@@ -268,5 +268,4 @@ abstract class Model {
 	public final function __destruct() {
 		$this->entity->referenceCount--;
 	}
-}
 }

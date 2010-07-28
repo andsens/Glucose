@@ -10,7 +10,7 @@
  * @property-read Constraints\PrimaryKeyConstraint $primaryKeyConstraint {@link Constraint constraint} specifying the {@link Constraints\PrimaryKeyConstraint primary key constraint} of the table
  * @property-read array $uniqueConstraints {@link Constraint constraint} specifying the {@link Constraints\UniqueKeyConstraint unqiue constraints} of the table
  */
-namespace Glucose {
+namespace Glucose;
 use \Glucose\Exceptions\Table as E;
 use \Glucose\Exceptions\Entity as EE;
 require_once __DIR__.'/Exceptions/MySQL/MySQLErrorException.class.php'; // Workaround
@@ -567,5 +567,4 @@ End;
 				throw $e;
 		}
 	}
-}
 }
