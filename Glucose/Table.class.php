@@ -24,7 +24,7 @@ class Table {
 	 */
 	private static $mysqli;
 	
-	const REQUIRED_MYSQL_VERSION = 50140;
+	const REQUIRED_MYSQL_VERSION = 50136;
 	
 	/**
 	 * Prepared statement that retrieves all columns and meta-information of a table.
