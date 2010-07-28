@@ -1,2 +1,6 @@
+/Reports/*
 /build.properties
-/build.properties
+/.DS_Store
+/.buildpath
+/.project
+/.settings
