@@ -14,6 +14,7 @@ class ColumnTest extends PHPUnit_Framework_TestCase {
 	}
 	
 	public function test_P_ColumnStatementTypes() {
+		$this->markTestIncomplete();
 		$allTypes = array();
 		$allTypes['i'] = array('tinyint', 'smallint', 'mediumint', 'int', 'bigint');
 		$allTypes['d'] = array('real', 'double', 'float', 'decimal');

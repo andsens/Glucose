@@ -83,7 +83,7 @@ class TableTest extends TableComparisonTestCase {
 		$cities = self::$tables['cities'];
 		$people = self::$tables['people'];
 		$this->setExpectedException('Glucose\Exceptions\Table\InvalidUniqueConstraintException', 'The unique constraint does not match any constraint in the table.');
-		$hamburg = $cities->select(array('anders@ingemann.de'), $people->uniqueConstraints['UNIQUE_customers__email']);
+		$hamburg = $cities->select(array('anders@ingemann.de'), $people->uniqueConstraints['UNIQUE_people__email']);
 	}
 	
 	public function test_P_Insert1() {

@@ -75,6 +75,14 @@ class TypeCheckingTest extends PHPUnit_Framework_TestCase {
 		$arhus->setCountryAndPostalCode(2, '7000');
 	}
 	
+	public function test_P_unsetNotNullFieldWithNotNullAsDefault() {
+		
+	}
+	
+	public function test_N_unsetNotNullFieldWithNullAsDefault() {
+		
+	}
+	
 	protected function tearDown() {
 		self::$mysqli->query('ROLLBACK;');
 	}

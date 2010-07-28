@@ -27,6 +27,8 @@ class Column {
 	 */
 	private $type;
 	
+	private $unsigned;
+	
 	private $statementType;
 	
 	/**
@@ -60,9 +62,9 @@ class Column {
 	 * @param bool $notNull Wether the column cannot be null
 	 * @param mixed $default Default value
 	 */
-	public function __construct($name, $type = 'int', $maxLength = null, $notNull = false, $default = null, $extra = '') {
+	public function __construct($name, $columnType, $maxLength, $notNull = false, $default = null, $extra = '') {
 		$this->name = $name;
-		$this->type = strtolower($type);
+		$this->parseType($columnType);
 		$this->maxLength = $maxLength;
 		$this->notNull = $notNull;
 		$this->default = $default;
@@ -73,6 +75,13 @@ class Column {
 			$this->onUpdateCurrentTimestamp = strtolower($extra) == 'on update current_timestamp';
 			$this->defaultCurrentTimestamp = strtolower($this->default) == 'current_timestamp';
 		}
+	}
+	
+	private function parseType($columnType) {
+		if(preg_match('/^([a-z]+)(\([^\)]+\))?( unsigned)?$/', $columnType, $matches) != 1)
+			throw new \Exception($columnType); // TODO: Make an exception for this
+		$this->type = $matches[1];
+		$this->unsigned = array_key_exists(3, $matches);
 		switch($this->type) {
 			case 'tinyint':
 			case 'smallint':
@@ -111,6 +120,8 @@ class Column {
 				return $this->name;
 			case 'type':
 				return $this->type;
+			case 'unsigned':
+				return $this->unsigned;
 			case 'statementType':
 				return $this->statementType;
 			case 'maxLength':
@@ -130,12 +141,38 @@ class Column {
 	
 	public function testValueType($value) {
 		if($value === null && $this->notNull) {
-			
+			throw new E\Type\NotNullValueExpectedException('A not null field cannot be set to null.');
+		}
+		$type = gettype($value);
+		if($type == 'array')
+			throw new E\Type\TypeMismatchException('A string field can only hold a string.');
+		switch($this->type) {
+			case 'tinyint':
+			case 'smallint':
+			case 'mediumint':
+			case 'int':
+			case 'bigint':
+			case 'real':
+			case 'double':
+//				if(gettype($value) != 'double')
+//					throw new TypeMismatchException('A string field can only hold a string.');
+			case 'float':
+			case 'decimal':
+			case 'tinyblob':
+			case 'mediumblob':
+			case 'blob':
+			case 'longblob':
+				break;
+			default:
+				break;
 		}
 	}
 	
 	public function testValueUnset() {
-		
+		// TODO: not entirely sure this is even possible with mysql
+		if($this->default === null && $this->notNull) {
+			throw new E\Type\NotNullValueExpectedException('A not null field with nothing as a default value cannot be unset.');
+		}
 	}
 	
 	/**

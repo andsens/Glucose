@@ -2,25 +2,29 @@
 <project name="Glucose" default="test" basedir=".">
 	<property file="build.properties" />
 	
+	<condition property="usecolors" value="--colors" else="">
+		<os family="unix" />
+	</condition>
+	
 	<target name="help">
 		<echo>Valid targets are:
-test (default)	Builds the test tables runs the unit tests
-			with agile documentation and drops the tables.
+test	Builds the test tables runs the unit tests
+		with agile documentation and drops the tables.
 
-coverage		Builds the test tables runs the unit tests
-			generating coverage reports and drops the tables.
+coverage	Builds the test tables runs the unit tests
+		generating coverage reports and drops the tables.
 
-loc			Counts the lines of PHP code in the project.
+loc		Counts the lines of PHP code in the project.
 
-cpd			Detects copy&amp;paste code.
+cpd		Detects copy&amp;paste code.
 
-dep			Runs a dependency analysis.
+dep		Runs a dependency analysis.
 
-clean		Cleans out the Reports directory.
+clean	Cleans out the Reports directory.
 
-tables		Builds the test tables.
+tables	Builds the test tables.
 
-drop		Drop the test tables.
+drop	Drop the test tables.
 		</echo>
 	</target>
 	
@@ -28,7 +32,7 @@ drop		Drop the test tables.
 		<antcall target="tables" />
 		<echo>Running PHPUnit tests</echo>
 		<exec dir="${test.dir}" executable="${phpunit}">
-			<arg value="--colors" />
+			<arg value="${usecolors}" />
 			<arg line="--testdox-html ${report.agiledoc.file}" />
 		</exec>
 		<antcall target="drop" />
@@ -39,7 +43,7 @@ drop		Drop the test tables.
 		<echo>Running PHPUnit tests with code coverage</echo>
 		<mkdir dir="${report.coverage.dir}"/>
 		<exec dir="${test.dir}" executable="${phpunit}">
-			<arg value="--colors" />
+			<arg value="${usecolors}" />
 			<arg line="--coverage-html ${report.coverage.dir}" />
 		</exec>
 		<antcall target="drop" />

@@ -119,7 +119,7 @@ class Table {
 		$sql = <<<End
 SELECT
 	`columns`.`COLUMN_NAME`, `columns`.`ORDINAL_POSITION`, `columns`.`COLUMN_DEFAULT`, `columns`.`IS_NULLABLE`,
-	`columns`.`DATA_TYPE`, `columns`.`CHARACTER_MAXIMUM_LENGTH`, `columns`.`EXTRA`,
+	`columns`.`COLUMN_TYPE`, `columns`.`CHARACTER_MAXIMUM_LENGTH`, `columns`.`EXTRA`,
 	`table_constraints`.`CONSTRAINT_TYPE`, `table_constraints`.`CONSTRAINT_NAME`,
 	`column_usage`.`REFERENCED_TABLE_NAME`, `column_usage`.`REFERENCED_COLUMN_NAME`,
 	`referential_constraints`.`UPDATE_RULE`, `referential_constraints`.`DELETE_RULE`,
@@ -164,14 +164,14 @@ End;
 		self::$tableInformationQuery->store_result();
 		if(self::$tableInformationQuery->num_rows() == 0)
 			throw new E\MissingTableException("The table '".$this->tableName."' does not exist.");
-			
+		
 		self::$tableInformationQuery->bind_result($name, $ordinalPosition, $defaultValue, $isNullable, $type, $maxLength, $extra,
 		$constraintType, $constraintName, $referencedTableName, $referencedColumnName, $updateRule, $deleteRule,
 		$refererConstraintName, $refererTableName, $refererColumnName);
 		
 		while(self::$tableInformationQuery->fetch()) {
 			if(!isset($this->columns[$name]))
-				$this->columns[$name] = new Column((string) $name, (string) $type, (integer) $maxLength, (boolean) $isNullable == 'NO', $defaultValue, (string) $extra);
+				$this->columns[$name] = new Column((string) $name, (string) $type, (integer) $maxLength, (boolean) ($isNullable == 'NO'), $defaultValue, (string) $extra);
 			$column = $this->columns[$name];
 			if($constraintType !== null) {
 				switch($constraintType) {

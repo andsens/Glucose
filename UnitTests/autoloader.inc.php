@@ -4,7 +4,11 @@ spl_autoload_register(function($className) {
 	if(file_exists($file)) {
 		require_once($file);
 		return true;
-	} else {
-		return false;
 	}
+	$file = __DIR__.'/../'.str_replace('\\', '/', $className).'.interface.php';
+	if(file_exists($file)) {
+		require_once($file);
+		return true;
+	}
+	return false;
 });
