@@ -1,5 +1,5 @@
-/build.properties
-/.DS_Store
-/.buildpath
-/.project
-/.settings
+build.properties
+.DS_Store
+.buildpath
+.project
+.settings/
