@@ -1,10 +1,4 @@
 <?php
-/**
- *
- * @author andsens
- * @package glucose
- * @subpackage glucose.exceptions.mysql
- */
 namespace Glucose\Exceptions\MySQL\Client;
 class MySQLClientErrorException extends \Glucose\Exceptions\MySQL\MySQLErrorException {
 	/**
