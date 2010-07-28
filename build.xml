@@ -14,6 +14,10 @@ loc			Counts the lines of PHP code in the project.
 
 cpd			Detects copy&amp;paste code.
 
+dep			Runs a dependency analysis.
+
+clean		Cleans out the Reports directory.
+
 tables		Builds the test tables.
 
 drop		Drop the test tables.
@@ -39,6 +43,51 @@ drop		Drop the test tables.
 			<arg line="--coverage-html ${report.coverage.dir}" />
 		</exec>
 		<antcall target="drop" />
+	</target>
+
+	<target name="loc">
+		<echo>Counting lines of code</echo>
+		<exec dir="${report.dir}" executable="${phploc}">
+			<arg line="--log-xml ${report.loc.file}" />
+			<arg line="--suffixes php" />
+			<arg value="${src.dir}" />
+		</exec>
+	</target>
+	
+	<target name="cpd">
+		<echo>Detecting copy&amp;pasted code lines of code</echo>
+		<exec dir="${report.dir}" executable="${phpcpd}">
+			<arg line="--log-pmd ${report.cpd.file}" />
+			<arg line="--min-lines 3" />
+			<arg line="--min-tokens 15" />
+			<arg line="--suffixes php" />
+			<arg value="${src.dir}" />
+		</exec>
+	</target>
+	
+	<target name="dep">
+		<echo>Running code dependency analysis</echo>
+		<mkdir dir="${report.depend.dir}"/>
+		<exec dir="${report.dir}" executable="${phpdep}">
+			<arg line="--jdepend-chart=${report.depend.dir}/chart.svg" />
+			<arg line="--jdepend-xml=${report.depend.dir}/log.xml" />
+			<arg line="--overview-pyramid=${report.depend.dir}/pyramid.svg" />
+			<arg line="--phpunit-xml=${report.depend.dir}/metrics.xml" />
+			<arg line="--summary-xml=${report.depend.dir}/summary.xml" />
+			<arg value="${src.dir}" />
+		</exec>
+	</target>
+	
+	<target name="lint">
+		
+	</target>
+	
+	<target name="clean">
+		<delete file="${report.agiledoc.file}" />
+		<delete dir="${report.coverage.dir}" />
+		<delete file="${report.cpd.file}" />
+		<delete dir="${report.depend.dir}" />
+		<delete file="${report.loc.file}" />
 	</target>
 	
 	<target name="tables">
@@ -99,38 +148,5 @@ drop		Drop the test tables.
 			DROP SCHEMA `${test.schema}`;
 			DROP SCHEMA `${test.schema.comparison}`;
 		</sql>
-	</target>
-
-	<target name="loc">
-		<echo>Counting lines of code</echo>
-		<exec dir="${report.dir}" executable="${phploc}">
-			<arg line="--log-xml ${report.loc.file}" />
-			<arg line="--suffixes php" />
-			<arg value="${src.dir}" />
-		</exec>
-	</target>
-	
-	<target name="cpd">
-		<echo>Detecting copy&amp;pasted code lines of code</echo>
-		<exec dir="${report.dir}" executable="${phpcpd}">
-			<arg line="--log-pmd ${report.cpd.file}" />
-			<arg line="--min-lines 3" />
-			<arg line="--min-tokens 15" />
-			<arg line="--suffixes php" />
-			<arg value="${src.dir}" />
-		</exec>
-	</target>
-	
-	<target name="dependency">
-		<echo></echo>
-		<mkdir dir="${report.depend.dir}"/>
-		<exec dir="${report.dir}" executable="${phpdep}">
-			<arg line="--jdepend-chart=${report.depend.dir}/chart.svg" />
-			<arg line="--jdepend-xml=${report.depend.dir}/log.xml" />
-			<arg line="--overview-pyramid=${report.depend.dir}/pyramid.svg" />
-			<arg line="--phpunit-xml=${report.depend.dir}/metrics.xml" />
-			<arg line="--summary-xml=${report.depend.dir}/summary.xml" />
-			<arg value="${src.dir}" />
-		</exec>
 	</target>
 </project>

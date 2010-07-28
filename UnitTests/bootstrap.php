@@ -1,7 +1,6 @@
 <?php
-$root = realpath(dirname(__FILE__).'/..').'/';
-require_once $root.'Glucose/autoloader.inc.php';
-$buildProperties = file_get_contents($root.'build.properties');
+require_once __DIR__.'/autoloader.inc.php';
+$buildProperties = file_get_contents(__DIR__.'/../build.properties');
 $properties = array('hostname' => 'mysql.hostname',
                     'port'     => 'mysql.port',
                     'username' => 'mysql.username',
@@ -22,7 +21,7 @@ Glucose\Model::connect($GLOBALS['mysqli']);
 spl_autoload_register(function($className) {
 	switch($className) {
 		case 'TableComparisonTestCase':
-			require_once dirname(__FILE__).'/TableComparisonTestCase.class.php';
+			require_once __DIR__.'/TableComparisonTestCase.class.php';
 			return true;
 		default:
 			return false;

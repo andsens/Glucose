@@ -13,7 +13,7 @@
 namespace Glucose {
 use \Glucose\Exceptions\Table as E;
 use \Glucose\Exceptions\Entity as EE;
-require_once dirname(__FILE__).'/Exceptions/MySQL/MySQLErrorException.class.php'; // Workaround
+require_once __DIR__.'/Exceptions/MySQL/MySQLErrorException.class.php'; // Workaround
 use \Glucose\Exceptions\MySQL\MySQLErrorException;
 use \Glucose\Exceptions\MySQL\MySQLConnectionException;
 class Table {
