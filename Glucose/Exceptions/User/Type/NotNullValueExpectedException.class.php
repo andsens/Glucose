@@ -1,5 +1,5 @@
 <?php
 namespace Glucose\Exceptions\User\Type;
-class NotNullValueExpectedException extends TypeMismatchException {
+class NotNullValueExpectedException extends \InvalidArgumentException implements TypeMismatchException {
 	
 }

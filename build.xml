@@ -2,10 +2,6 @@
 <project name="Glucose" default="test" basedir=".">
 	<property file="build.properties" />
 	
-	<condition property="usecolors" value="--colors" else="">
-		<os family="unix" />
-	</condition>
-	
 	<target name="help">
 		<echo>Valid targets are:
 test	Builds the test tables runs the unit tests
@@ -31,8 +27,16 @@ drop	Drop the test tables.
 	<target name="test">
 		<antcall target="tables" />
 		<echo>Running PHPUnit tests</echo>
-		<exec dir="${test.dir}" executable="${phpunit}">
-			<arg value="${usecolors}" />
+		<condition property="filter" value="--filter ${tests}" else="">
+		      <isset property="tests"/>
+		</condition>
+		<exec dir="${test.dir}" executable="${phpunit}" osfamily="unix">
+			<arg value="--colors" />
+			<arg line="${filter}" />
+			<arg line="--testdox-html ${report.agiledoc.file}" />
+		</exec>
+		<exec dir="${test.dir}" executable="${phpunit}" searchpath="true" osfamily="windows">
+			<arg line="${filter}" />
 			<arg line="--testdox-html ${report.agiledoc.file}" />
 		</exec>
 		<antcall target="drop" />
@@ -42,8 +46,11 @@ drop	Drop the test tables.
 		<antcall target="tables" />
 		<echo>Running PHPUnit tests with code coverage</echo>
 		<mkdir dir="${report.coverage.dir}"/>
-		<exec dir="${test.dir}" executable="${phpunit}">
-			<arg value="${usecolors}" />
+		<exec dir="${test.dir}" executable="${phpunit}" osfamily="unix">
+			<arg value="--colors" />
+			<arg line="--coverage-html ${report.coverage.dir}" />
+		</exec>
+		<exec dir="${test.dir}" executable="${phpunit}" searchpath="true" osfamily="windows">
 			<arg line="--coverage-html ${report.coverage.dir}" />
 		</exec>
 		<antcall target="drop" />
@@ -51,7 +58,7 @@ drop	Drop the test tables.
 
 	<target name="loc">
 		<echo>Counting lines of code</echo>
-		<exec dir="${report.dir}" executable="${phploc}">
+		<exec dir="${report.dir}" executable="${phploc}" searchpath="true">
 			<arg line="--log-xml ${report.loc.file}" />
 			<arg line="--suffixes php" />
 			<arg value="${src.dir}" />
@@ -60,7 +67,7 @@ drop	Drop the test tables.
 	
 	<target name="cpd">
 		<echo>Detecting copy&amp;pasted code lines of code</echo>
-		<exec dir="${report.dir}" executable="${phpcpd}">
+		<exec dir="${report.dir}" executable="${phpcpd}" searchpath="true">
 			<arg line="--log-pmd ${report.cpd.file}" />
 			<arg line="--min-lines 3" />
 			<arg line="--min-tokens 15" />
@@ -72,7 +79,7 @@ drop	Drop the test tables.
 	<target name="dep">
 		<echo>Running code dependency analysis</echo>
 		<mkdir dir="${report.depend.dir}"/>
-		<exec dir="${report.dir}" executable="${phpdep}">
+		<exec dir="${report.dir}" executable="${phpdep}" searchpath="true">
 			<arg line="--jdepend-chart=${report.depend.dir}/chart.svg" />
 			<arg line="--jdepend-xml=${report.depend.dir}/log.xml" />
 			<arg line="--overview-pyramid=${report.depend.dir}/pyramid.svg" />
@@ -80,10 +87,6 @@ drop	Drop the test tables.
 			<arg line="--summary-xml=${report.depend.dir}/summary.xml" />
 			<arg value="${src.dir}" />
 		</exec>
-	</target>
-	
-	<target name="lint">
-		
 	</target>
 	
 	<target name="clean">

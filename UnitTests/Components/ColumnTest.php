@@ -12,9 +12,8 @@ class ColumnTest extends PHPUnit_Framework_TestCase {
 		$column = new Column('some_timestamp', 'timestamp', null, true, 'CURRENT_TIMESTAMP');
 		$this->assertEquals($column->name, 'some_timestamp');
 	}
-	
+	// TODO: Column has been refactored. Fix these types
 	public function test_P_ColumnStatementTypes() {
-		$this->markTestIncomplete();
 		$allTypes = array();
 		$allTypes['i'] = array('tinyint', 'smallint', 'mediumint', 'int', 'bigint');
 		$allTypes['d'] = array('real', 'double', 'float', 'decimal');

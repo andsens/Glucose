@@ -75,7 +75,7 @@ abstract class Model {
 			if(in_array(null, $arguments, true))
 				throw new E\ConstructorArgumentException('Illegal argument [null].');
 			foreach($this->table->primaryKeyConstraint->columns as $index => $column)
-				$column->testValueType($arguments[$index]);
+				$arguments[$index] = $column->autobox($arguments[$index]);
 			try {
 				$this->entity = $this->table->select($arguments, $this->table->primaryKeyConstraint);
 				if($this->entity->deleted)
@@ -115,7 +115,7 @@ abstract class Model {
 				if('initBy'.implode('And', $camelized) == $name) {
 					if(count($constraint->columns) == count($arguments)) {
 						foreach($constraint->columns as $index => $column)
-							$column->testValueType($arguments[$index]);
+							$arguments[$index] = $column->autobox($arguments[$index]);
 						return new static($table->select($arguments, $constraint)->getValues($table->primaryKeyConstraint->columns));
 					} else {
 						$requiredNumberOfArguments = count($constraint->columns);
@@ -147,7 +147,7 @@ abstract class Model {
 						if(!in_array(null, $arguments, true) && $this->table->exists($arguments, $constraint))
 							throw new E\EntityCollisionException('Your changes collide with the unique values of an existing entity.');
 						foreach($constraint->columns as $index => $column)
-							$column->testValueType($arguments[$index]);
+							$arguments[$index] = $column->autobox($arguments[$index]);
 						foreach($constraint->columns as $index => $column)
 							if($arguments[$index] !== $this->entity->fields[$column->name]->value)
 								$this->entity->fields[$column->name]->modelValue = $arguments[$index];
@@ -177,7 +177,7 @@ abstract class Model {
 	 */
 	public function __get($name) {
 		$name = Model::$inflector->underscore($name);
-		$this->simulateRead($name);
+		$this->canAccess($name);
 		$field = $this->entity->fields[$name];
 		if($field->updateModel)
 			$this->table->syncWithDB($this->entity);
@@ -195,7 +195,7 @@ abstract class Model {
 	 */
 	public function __isset($name) {
 		$name = Model::$inflector->underscore($name);
-		$this->simulateRead($name);
+		$this->canAccess($name);
 		$field = $this->entity->fields[$name];
 		if($this->entity->inDB && $field->updateModel)
 			$this->table->syncWithDB($this->entity);
@@ -210,11 +210,11 @@ abstract class Model {
 	 */
 	public function __set($name, $value) {
 		$name = Model::$inflector->underscore($name);
-		$this->simulateModify($name);
+		$this->canAccess($name);
 		$field = $this->entity->fields[$name];
+		$value = $field->column->autobox($value);
 		if($value === $field->value)
 			return;
-		$field->column->testValueType($value);
 		foreach($this->table->uniqueConstraints as $constraint) {
 			if(false !== $index = array_search($field->column, $constraint->columns)) {
 				$values = $this->entity->getValues($constraint->columns);
@@ -235,9 +235,9 @@ abstract class Model {
 	 */
 	public function __unset($name) {
 		$name = Model::$inflector->underscore($name);
-		$this->simulateModify($name);
+		$this->canAccess($name);
 		$field = $this->entity->fields[$name];
-		$field->column->testValueUnset();
+		$field->column->canUnset();
 		unset($field->value);
 		foreach($this->table->uniqueConstraints as $constraint) {
 			if(in_array($field->column, $constraint->columns)) {
@@ -247,16 +247,9 @@ abstract class Model {
 		}
 	}
 	
-	private function simulateRead($name) {
+	private function canAccess($name) {
 		if($this->entity->deleted)
-			throw new E\EntityDeletedException('This entity has been deleted. You can no longer read its fields.');
-		if(!isset($this->entity->fields[$name]))
-			throw new E\UndefinedPropertyException('The field \''.Model::$inflector->variable($name).'\' does not exists.');
-	}
-	
-	private function simulateModify($name) {
-		if($this->entity->deleted)
-			throw new E\EntityDeletedException('This entity has been deleted. You can no longer modify its fields.');
+			throw new E\EntityDeletedException('This entity has been deleted. You can no longer access its fields.');
 		if(!isset($this->entity->fields[$name]))
 			throw new E\UndefinedPropertyException('The field \''.Model::$inflector->variable($name).'\' does not exists.');
 	}

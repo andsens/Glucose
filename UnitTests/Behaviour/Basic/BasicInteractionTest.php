@@ -128,14 +128,14 @@ class BasicInteractionTest extends TableComparisonTestCase {
 	public function test_N_ReadDeleted() {
 		$arhus = new City(1);
 		$arhus->delete();
-		$this->setExpectedException('\Glucose\Exceptions\User\EntityDeletedException', "This entity has been deleted. You can no longer read its fields.");
+		$this->setExpectedException('\Glucose\Exceptions\User\EntityDeletedException', "This entity has been deleted. You can no longer access its fields.");
 		$name = $arhus->name;
 	}
 	
 	public function test_N_ModifyDeleted() {
 		$arhus = new City(1);
 		$arhus->delete();
-		$this->setExpectedException('\Glucose\Exceptions\User\EntityDeletedException', "This entity has been deleted. You can no longer modify its fields.");
+		$this->setExpectedException('\Glucose\Exceptions\User\EntityDeletedException', "This entity has been deleted. You can no longer access its fields.");
 		$arhus->name = 'SomethingElse';
 	}
 	

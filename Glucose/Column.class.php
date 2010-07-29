@@ -14,6 +14,7 @@
  */
 namespace Glucose;
 use \Glucose\Exceptions\User as E;
+use \Glucose\Exceptions\Table as TE;
 class Column {
 	/**
 	 * Name of the column
@@ -36,6 +37,10 @@ class Column {
 	 * @var int
 	 */
 	private $maxLength;
+	
+	private $zerofill;
+	
+	private $paddingLength;
 	
 	/**
 	 * Wether this column cannot be null
@@ -78,33 +83,90 @@ class Column {
 	}
 	
 	private function parseType($columnType) {
-		if(preg_match('/^([a-z]+)(\([^\)]+\))?( unsigned)?$/', $columnType, $matches) != 1)
-			throw new \Exception($columnType); // TODO: Make an exception for this
+		if(preg_match('/^([a-z]+)(\([^\)]+\))?( unsigned)?( zerofill)?$/', $columnType, $matches) != 1)
+			throw new TE\ColumnTypeParsingException('Could not parse a column type in the database.');
 		$this->type = $matches[1];
+		$this->paddingLength = array_key_exists(4, $matches)?$matches[2]:0;
 		$this->unsigned = array_key_exists(3, $matches);
+		$this->zerofill = array_key_exists(4, $matches);
 		switch($this->type) {
-			case 'tinyint':
-			case 'smallint':
-			case 'mediumint':
-			case 'int':
-			case 'bigint':
+			case 'tinyint': case 'smallint': case 'mediumint': case 'int': case 'bigint':
 				$this->statementType = 'i';
 				break;
-			case 'real':
-			case 'double':
-			case 'float':
-			case 'decimal':
+			case 'real': case 'double': case 'float': case 'decimal':
 				$this->statementType = 'd';
 				break;
-			case 'tinyblob':
-			case 'mediumblob':
-			case 'blob':
-			case 'longblob':
+			case 'tinyblob': case 'mediumblob': case 'blob': case 'longblob':
 				$this->statementType = 'b';
 				break;
 			default:
 				$this->statementType = 's';
 				break;
+		}
+	}
+	
+	public function autobox($value) {
+		if($value === null)
+			$this->canUnset();
+		$type = gettype($value);
+		if($type == 'array' || $type == 'resource' || $type == 'object')
+			throw new E\Type\InvalidTypeException('You can only assign primitive types to a property.');
+		switch($this->type) {
+			case 'tinyint':
+				$value = intval($value);
+				$this->checkRange($value, 256);
+				return $value;
+			case 'smallint':
+				$value = intval($value);
+				$this->checkRange($value, 65536);
+				return $value;
+			case 'mediumint':
+				$value = intval($value);
+				$this->checkRange($value, 16777216);
+				return $value;
+			case 'int':
+				$value = $this->unsigned?floatval($value):intval($value);
+				$this->checkRange($value, 4294967296);
+				return $value;
+			case 'bigint':
+				$value = floatval($value);
+				$this->checkRange($value, 18446744073709551616);
+				return $value;
+			case 'real':
+			case 'double':
+			case 'float':
+			case 'decimal':
+				$value = floatval($value);
+				return $value;
+			case 'tinyblob':
+			case 'mediumblob':
+			case 'blob':
+			case 'longblob':
+				$this->checkLength($value);
+				return $value;
+			default:
+				$value = strval($value);
+				$this->checkLength($value);
+				return $value;
+		}
+	}
+	
+	private function checkRange($value, $range) {
+		$min = $this->unsigned?0:-$range/2;
+		$max = $this->unsigned?$range:$range/2-1;
+		if($min > $value || $value > $max)
+			throw new E\Type\OutOfRangeException('The value is out of range.');
+	}
+	
+	private function checkLength($value) {
+		if(strlen($value) > $this->maxLength)
+			throw new E\Type\CharacterLengthException('The value is too long.');
+	}
+	
+	public function canUnset() {
+		// TODO: not entirely sure this is even possible with mysql
+		if($this->default === null && $this->notNull) {
+			throw new E\Type\NotNullValueExpectedException('A not null field with nothing as a default value cannot be unset.');
 		}
 	}
 	
@@ -136,42 +198,6 @@ class Column {
 				return $this->onUpdateCurrentTimestamp;
 			case 'defaultCurrentTimestamp':
 				return $this->defaultCurrentTimestamp;
-		}
-	}
-	
-	public function testValueType($value) {
-		if($value === null && $this->notNull) {
-			throw new E\Type\NotNullValueExpectedException('A not null field cannot be set to null.');
-		}
-		$type = gettype($value);
-		if($type == 'array')
-			throw new E\Type\TypeMismatchException('A string field can only hold a string.');
-		switch($this->type) {
-			case 'tinyint':
-			case 'smallint':
-			case 'mediumint':
-			case 'int':
-			case 'bigint':
-			case 'real':
-			case 'double':
-//				if(gettype($value) != 'double')
-//					throw new TypeMismatchException('A string field can only hold a string.');
-			case 'float':
-			case 'decimal':
-			case 'tinyblob':
-			case 'mediumblob':
-			case 'blob':
-			case 'longblob':
-				break;
-			default:
-				break;
-		}
-	}
-	
-	public function testValueUnset() {
-		// TODO: not entirely sure this is even possible with mysql
-		if($this->default === null && $this->notNull) {
-			throw new E\Type\NotNullValueExpectedException('A not null field with nothing as a default value cannot be unset.');
 		}
 	}
 	
