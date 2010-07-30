@@ -35,7 +35,7 @@
  */
 
 if (extension_loaded('xdebug')) {
-    ini_set('xdebug.show_exception_trace', 0);
+    xdebug_disable();
 }
 
 if (strpos('/usr/bin/php', '@php_bin') === 0) {

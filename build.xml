@@ -55,6 +55,26 @@ drop	Drop the test tables.
 		</exec>
 		<antcall target="drop" />
 	</target>
+	
+	<target name="profile">
+		<antcall target="tables" />
+		<echo>Running PHPUnit tests while profiling</echo>
+		<mkdir dir="${report.profiling.dir}"/>
+		<exec dir="${test.dir}" executable="${php}" osfamily="unix">
+			<arg value="-d xdebug.profiler_enable=on" />
+			<arg value="-d xdebug.profiler_output_dir=${report.profiling.dir}" />
+			<arg value="-d xdebug.profiler_output_name=cachegrind.out.%t" />
+			<arg line="phpunit.php" />
+			<arg value="--colors" />
+		</exec>
+		<exec dir="${test.dir}" executable="${php}" searchpath="true" osfamily="windows">
+			<arg value="-d xdebug.profiler_enable=on" />
+			<arg value="-d xdebug.profiler_output_dir=${report.profiling.dir}" />
+			<arg value="-d xdebug.profiler_output_name=cachegrind.out.%t" />
+			<arg line="phpunit.php" />
+		</exec>
+		<antcall target="drop" />
+	</target>
 
 	<target name="loc">
 		<echo>Counting lines of code</echo>

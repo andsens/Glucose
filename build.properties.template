@@ -16,15 +16,18 @@ report.agiledoc.file = ${report.dir}/UnitTests.html
 report.loc.file      = ${report.dir}/LinesOfCode.xml
 report.cpd.file      = ${report.dir}/CopyPasteCode.xml
 report.depend.dir    = ${report.dir}/Dependency
+report.profiling.dir = ${report.dir}/Profiling
 
 # Location of inputfiles
 test.sqlscript       = ${test.dir}/Database/model.sql
 
 # Locations of executables
+php                  = php
 phpunit              = phpunit
 phploc               = phploc
 phpcpd               = phpcpd
 phpdep               = pdepend
+xdebugtoolkit.cg2dot = cg2dot.py
 
 # Name of the schema to use for the unit tests
 test.schema            = model_unit_tests

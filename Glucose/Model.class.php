@@ -61,7 +61,7 @@ abstract class Model {
 	public function __construct() {
 		if(static::$className != self::$className && static::$className != get_class($this))
 			throw new E\UnexpectedValueException('There is a discrepancy between the actual class name (\''.get_class($this).'\') and the value of $className (\''.static::$className.'\').');
-		$tableName = static::getTableName();
+		$tableName = self::$inflector->tableize(get_class($this));
 		if(!array_key_exists($tableName, self::$tables))
 			self::$tables[$tableName] = new Table($tableName);
 		$this->table = self::$tables[$tableName];
@@ -129,9 +129,6 @@ abstract class Model {
 	}
 	
 	public function __call($name, $arguments) {
-		if($name == 'getTableName')
-			return self::$inflector->tableize(get_class($this));
-		
 		if($this->entity->deleted)
 			throw new E\EntityDeletedException('This entity has been deleted. You can no longer modify its fields.');
 		
