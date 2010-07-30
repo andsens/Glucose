@@ -27,7 +27,6 @@ phpunit              = phpunit
 phploc               = phploc
 phpcpd               = phpcpd
 phpdep               = pdepend
-xdebugtoolkit.cg2dot = cg2dot.py
 
 # Name of the schema to use for the unit tests
 test.schema            = model_unit_tests
