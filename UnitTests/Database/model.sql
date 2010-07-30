@@ -65,6 +65,20 @@ CREATE  TABLE IF NOT EXISTS `users` (
 ENGINE = InnoDB;
 
 
+-- -----------------------------------------------------
+-- Table `overlapping_unique_keys`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `overlapping_unique_keys` ;
+
+CREATE  TABLE IF NOT EXISTS `overlapping_unique_keys` (
+  `column1` INT NOT NULL ,
+  `column2` INT NOT NULL ,
+  `column3` INT NOT NULL ,
+  PRIMARY KEY (`column1`, `column2`) ,
+  UNIQUE INDEX `UQ_overlapping_unique_keys__column2__column3` (`column2` ASC, `column3` ASC) )
+ENGINE = InnoDB;
+
+
 
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
@@ -110,5 +124,16 @@ COMMIT;
 -- -----------------------------------------------------
 SET AUTOCOMMIT=0;
 INSERT INTO users (`person`, `nickname`, `password`, `registered`, `last_login`) VALUES ('1', 'andsens', '21298df8a3277357ee55b01df9530b535cf08ec1', NULL, NULL);
+
+COMMIT;
+
+-- -----------------------------------------------------
+-- Data for table `overlapping_unique_keys`
+-- -----------------------------------------------------
+SET AUTOCOMMIT=0;
+INSERT INTO overlapping_unique_keys (`column1`, `column2`, `column3`) VALUES ('0', '1', '1');
+INSERT INTO overlapping_unique_keys (`column1`, `column2`, `column3`) VALUES ('1', '2', '3');
+INSERT INTO overlapping_unique_keys (`column1`, `column2`, `column3`) VALUES ('2', '4', '9');
+INSERT INTO overlapping_unique_keys (`column1`, `column2`, `column3`) VALUES ('3', '8', '27');
 
 COMMIT;

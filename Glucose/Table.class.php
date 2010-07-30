@@ -340,7 +340,10 @@ End;
 			call_user_func_array(array(&$constraint->selectStatement, 'bind_result'), $fields);
 			$constraint->selectStatement->fetch();
 			$constraint->selectStatement->free_result();
-		
+			
+			/* TODO: Not sure if this is neccessary any longer. We always fetch all values anyways.
+			 * Probably a left over from the lazy loading feature.
+			 */
 			if($constraint != $this->primaryKeyConstraint) {
 				$primaryKeyValues = array();
 				foreach($this->primaryKeyConstraint->columns as $column)
@@ -509,6 +512,7 @@ End;
 		if(in_array(null, $uniqueValues, true))
 			throw new E\InvalidUniqueValuesException('Unique values cannot be null.');
 		$fromModel = $this->entityEngine->findModel($uniqueValues, $constraint);
+		// TODO: When returning true her, we need to be sure that this change will be committed before any potential update.
 		if($fromModel !== null && !$fromModel->deleted)
 			return true;
 		if($this->entityEngine->findDB($uniqueValues, $constraint) === null) {
@@ -530,6 +534,7 @@ End;
 			else
 				throw new E\MultipleEntitiesException('The values you specified match two or more entries in the table.');
 		}
+		return false;
 	}
 	
 	public function syncWithDB(Entity $entity, Field $requiredField = null) {
@@ -538,9 +543,8 @@ End;
 				$this->update($entity);
 			} else {
 				$this->insert($entity);
-				if($requiredField !== null && $requiredField->updateModel) {
+				if($requiredField !== null && $requiredField->updateModel)
 					$this->refresh($entity);
-				}
 			}
 		} else {
 			$this->delete($entity);

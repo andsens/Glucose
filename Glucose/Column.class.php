@@ -106,9 +106,9 @@ class Column {
 	}
 	
 	public function autobox($value) {
-		if($value === null)
-			$this->canUnset();
 		$type = gettype($value);
+		if($type == 'NULL')
+			return $value;
 		if($type == 'array' || $type == 'resource' || $type == 'object')
 			throw new E\Type\InvalidTypeException('You can only assign primitive types to a property.');
 		switch($this->type) {
@@ -164,10 +164,8 @@ class Column {
 	}
 	
 	public function canUnset() {
-		// TODO: not entirely sure this is even possible with mysql
-		if($this->default === null && $this->notNull) {
-			throw new E\Type\NotNullValueExpectedException('A not null field with nothing as a default value cannot be unset.');
-		}
+		if($this->default === null && $this->notNull)
+			throw new E\Type\NotNullValueExpectedException('A not null field without a default value cannot be unset.');
 	}
 	
 	/**

@@ -141,10 +141,32 @@ abstract class Model {
 					$camelized[] = self::$inflector->camelize($column->name);
 				if('set'.implode('And', $camelized) == $name) {
 					if(count($constraint->columns) == count($arguments)) {
-						if(!in_array(null, $arguments, true) && $this->table->exists($arguments, $constraint))
-							throw new E\EntityCollisionException('Your changes collide with the unique values of an existing entity.');
-						foreach($constraint->columns as $index => $column)
+						// TODO: Be sure the values are not the same, otherwise simply return;
+						if(!in_array(null, $arguments, true)) {
+							foreach($this->table->uniqueConstraints as $checkConstraint) {
+								$overlappingColumns = array_intersect($constraint->columns, $checkConstraint->columns);
+								if(count($overlappingColumns) > 0) {
+									$values = $this->entity->getValues($checkConstraint->columns);
+									$valuesUnchanged = true;
+									foreach($overlappingColumns as $index => $column) {
+										$checkConstraintColumnIndex = array_search($column, $checkConstraint->columns);
+										if($values[$checkConstraintColumnIndex] != $arguments[$index]) {
+											$valuesUnchanged = false;
+											$values[$checkConstraintColumnIndex] = $arguments[$index];
+										}
+									}
+									if($valuesUnchanged)
+										continue;
+									if($this->table->exists($values, $checkConstraint))
+										throw new E\EntityCollisionException('Your changes collide with the unique values of an existing entity.');
+								}
+							}
+						}
+						foreach($constraint->columns as $index => $column) {
+							if($arguments[$index] === null && $column->notNull)
+								throw new E\Type\NotNullValueExpectedException('A not null field cannot be set to null.');
 							$arguments[$index] = $column->autobox($arguments[$index]);
+						}
 						foreach($constraint->columns as $index => $column)
 							if($arguments[$index] !== $this->entity->fields[$column->name]->value)
 								$this->entity->fields[$column->name]->modelValue = $arguments[$index];
@@ -210,20 +232,23 @@ abstract class Model {
 		$this->canAccess($name);
 		$field = $this->entity->fields[$name];
 		$value = $field->column->autobox($value);
+		if($value === null && $field->column->notNull)
+			throw new E\Type\NotNullValueExpectedException('A not null field cannot be set to null.');
 		if($value === $field->value)
 			return;
+		$updateIdentifiers = false;
 		foreach($this->table->uniqueConstraints as $constraint) {
 			if(false !== $index = array_search($field->column, $constraint->columns)) {
+				$updateIdentifiers = true;
 				$values = $this->entity->getValues($constraint->columns);
 				$values[$index] = $value;
 				if(!in_array(null, $values, true) && $this->table->exists($values, $constraint))
 					throw new E\EntityCollisionException('Your changes collide with the unique values of an existing entity.');
-				$field->modelValue = $value;
-				$this->table->updateIdentifiers($this->entity);
-				return;
 			}
 		}
 		$field->modelValue = $value;
+		if($updateIdentifiers)
+			$this->table->updateIdentifiers($this->entity);
 	}
 	
 	/**

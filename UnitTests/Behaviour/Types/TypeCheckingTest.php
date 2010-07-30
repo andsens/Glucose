@@ -41,10 +41,25 @@ class TypeCheckingTest extends PHPUnit_Framework_TestCase {
 		$this->assertEquals($arhus->postalCode, 7000);
 	}
 	
-	public function test_P_unsetNotNullFieldWithNotNullAsDefault() {
+	public function test_N_unsetNotNullFieldWithNotNullAsDefault() {
+		$this->setExpectedException('Glucose\Exceptions\User\Type\NotNullValueExpectedException', 'A not null field without a default value cannot be unset.');
+		$anders = new Person(1);
+		unset($anders->id);
 	}
 	
-	public function test_N_unsetNotNullFieldWithNullAsDefault() {
+	public function test_N_assignNullToNotNullField() {
+		$this->setExpectedException('Glucose\Exceptions\User\Type\NotNullValueExpectedException', 'A not null field cannot be set to null.');
+		$anders = new Person(1);
+		$anders->id = null;
+	}
+	
+	public function test_N_assignNullToNotNullFieldViaSetMacro() {
+		$this->setExpectedException('Glucose\Exceptions\User\Type\NotNullValueExpectedException', 'A not null field cannot be set to null.');
+		$helsinki = new City(3);
+		$helsinki->setCountryAndPostalCode(8, null);
+	}
+	
+	public function test_P_unsetNotNullFieldWithNullAsDefault() {
 		$anders = new Person(1);
 		unset($anders->email);
 		$this->assertNull($anders->email);

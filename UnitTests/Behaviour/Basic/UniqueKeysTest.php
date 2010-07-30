@@ -4,6 +4,7 @@ require_once 'Models/Country.class.php';
 require_once 'Models/City.class.php';
 require_once 'Models/Person.class.php';
 require_once 'Models/User.class.php';
+require_once 'Models/OverlappingUniqueKeys.class.php';
 
 class UniqueKeysTest extends TableComparisonTestCase {
 	
@@ -83,9 +84,60 @@ class UniqueKeysTest extends TableComparisonTestCase {
 		$helsinki->country = 8;
 	}
 	
-	public function test_P_BatchChange() {
+	public function test_P_SingleChangeChangeBack() {
+		$helsinki = new City(3);
+		$oldCountry = $helsinki->country;
+		$helsinki->country = 8;
+		$helsinki->country = $oldCountry;
+	}
+	
+	public function test_P_MacroChange() {
 		$helsinki = new City(3);
 		$helsinki->setCountryAndPostalCode(8, 10);
+	}
+	
+	public function test_P_MacroChangeChangeBack() {
+		// TODO: Not failing. It should! Right now, that is.
+		// Maybe we should rely on the EntityEngine for checks like this instead?
+		$helsinki = new City(3);
+		$oldCountry = $helsinki->country;
+		$oldPostalCode = $helsinki->postalCode;
+		$helsinki->setCountryAndPostalCode(8, 10);
+		$helsinki->setCountryAndPostalCode($oldCountry, $oldPostalCode);
+	}
+	
+	public function test_N_OverlappingConstraintsCollision1() {
+		$model1 = new OverlappingUniqueKeys(0, 1);
+		$model2 = new OverlappingUniqueKeys(1, 2);
+		$model1->column3 = 3;
+		$this->setExpectedException('\Glucose\Exceptions\User\EntityCollisionException', 'Your changes collide with the unique values of an existing entity.');
+		$model2->column2 = 1;
+	}
+	
+	public function test_N_OverlappingConstraintsCollision2() {
+		$model1 = new OverlappingUniqueKeys(0, 1);
+		$model2 = new OverlappingUniqueKeys(1, 2);
+		$model1->column3 = 3;
+		unset($model1);
+		$this->setExpectedException('\Glucose\Exceptions\User\EntityCollisionException', 'Your changes collide with the unique values of an existing entity.');
+		$model2->column2 = 1;
+	}
+	
+	public function test_N_OverlappingConstraintsCollisionWithMacro1() {
+		$model1 = new OverlappingUniqueKeys(0, 1);
+		$model2 = new OverlappingUniqueKeys(1, 2);
+		$model1->setColumn2AndColumn3(1, 3);
+		$this->setExpectedException('\Glucose\Exceptions\User\EntityCollisionException', 'Your changes collide with the unique values of an existing entity.');
+		$model2->setColumn1AndColumn2(1, 1);
+	}
+	
+	public function test_N_OverlappingConstraintsCollisionWithMacro2() {
+		$model1 = new OverlappingUniqueKeys(0, 1);
+		$model2 = new OverlappingUniqueKeys(1, 2);
+		$model1->setColumn2AndColumn3(1, 3);
+		unset($model1);
+		$this->setExpectedException('\Glucose\Exceptions\User\EntityCollisionException', 'Your changes collide with the unique values of an existing entity.');
+		$model2->setColumn1AndColumn2(1, 1);
 	}
 	
 	protected function tearDown() {

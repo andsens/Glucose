@@ -95,6 +95,7 @@ class Field {
 	}
 	
 	public function __isset($name) {
+		// TODO: Should we check for $this->setToDefault here instead?
 		switch($name) {
 			case 'value':
 				return $this->currentValue !== null;
