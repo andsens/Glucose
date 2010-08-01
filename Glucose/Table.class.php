@@ -1,122 +1,49 @@
 <?php
-/**
- * Provides access to a table per instance and holds information about {@link Constraint constraints},
- * {@link Column columns} and other inforatiom about that table.
- * This is the worker class of the framework.
- * It is the only class, that should communicate with the database.
- * @author andsens
- *
- * @property-read array $columns Indexed array of all {@link Column columns} in the table, ordered by how they appear in the table
- * @property-read Constraints\PrimaryKeyConstraint $primaryKeyConstraint {@link Constraint constraint} specifying the {@link Constraints\PrimaryKeyConstraint primary key constraint} of the table
- * @property-read array $uniqueConstraints {@link Constraint constraint} specifying the {@link Constraints\UniqueKeyConstraint unqiue constraints} of the table
- */
 namespace Glucose;
 use \Glucose\Exceptions\Table as E;
-use \Glucose\Exceptions\Entity as EE;
-require_once __DIR__.'/Exceptions/MySQL/MySQLErrorException.class.php'; // Workaround
-use \Glucose\Exceptions\MySQL\MySQLErrorException;
-use \Glucose\Exceptions\MySQL\MySQLConnectionException;
 class Table {
-	
-	/**
-	 * MySQLI connection to the database
-	 * @var mysqli
-	 */
-	private static $mysqli;
 	
 	const REQUIRED_MYSQL_VERSION = 50136;
 	
+	private $databaseName;
+	
+	private $tableName;
+	
+	private $columns;
+	
+	private $primaryKeyConstraint;
+	
+	private $uniqueConstraints;
+	
+	private $foreignKeyConstraints;
+	
 	/**
-	 * Prepared statement that retrieves all columns and meta-information of a table.
-	 * @var mysqli_stmt
+	 *
+	 * Enter description here ...
+	 * @var Statements\SelectStatement
 	 */
 	private static $tableInformationQuery;
 	
-	/**
-	 * Name of the table schema.
-	 * @var string
-	 */
-	private $databaseName;
-	
-	/**
-	 * Name of the table
-	 * @var string
-	 */
-	private $tableName;
-	
-	/**
-	 * Indexed array containing the {@link Column} in the table ordered
-	 * by how they are listed in the database
-	 * @var array
-	 */
-	private $columns;
-	
-	/**
-	 * Constraint containing all the primary key columns of the table.
-	 * @var Constraints\PrimaryKeyConstraint
-	 */
-	private $primaryKeyConstraint;
-	
-	/**
-	 * Associative array containing all unique constraints of the table.
-	 * @var array
-	 */
-	private $uniqueConstraints;
-	
-	/**
-	 * Associative array containing all foreign key constraints of the table.
-	 * @var array
-	 */
-	private $foreignKeyConstraints;
-	
 	private $insertStatements = array();
 	
-	/**
-	 * Engine responsible for keeping two records seperate.
-	 * @var EntityEngine
-	 */
-	private $entityEngine;
-
-	/**
-	 * Connects the table to a database and prepares the column retrieval statement.
-	 * @param mysqli $mysqli MySQLi connection to the database
-	 */
 	public static function connect(\mysqli $mysqli) {
-		if($mysqli->connect_errno != 0)
-			throw new MySQLConnectionException('The MySQLi instance is not connected to a database.');
-		if($mysqli->server_version == '')
-			throw new MySQLConnectionException('The MySQLi instance is not connected to a database.');
-		if($mysqli->server_version < self::REQUIRED_MYSQL_VERSION)
-			throw new MySQLConnectionException('Glucose only works with MySQL version '.self::REQUIRED_MYSQL_VERSION.
-			" or higher, the server you are trying to connect to is version $mysqli->server_version.");
-		self::$mysqli = $mysqli;
+		Statements\Statement::connect($mysqli);
 		self::prepareTableInformationRetrievalStatement();
 	}
 	
-	/**
-	 * Constructs a table and maps it to a table in the currently selected schema given a table name.
-	 * @param string $tableName Name of the table
-	 */
-	public function __construct($tableName) {
-		if(!isset(self::$mysqli))
-			throw new MySQLConnectionException('No database connection has been defined.');
-		$dbNameResult = self::$mysqli->query('SELECT DATABASE();');
-		list($databaseName) = $dbNameResult->fetch_array();
-		$dbNameResult->free();
-		if($databaseName == null)
-			throw new E\NoDatabaseSelectedException('You have not selected any database.');
+	
+	public function __construct($databaseName, $tableName) {
+		if(Statements\Statement::isConnected())
+			throw new MySQLConnectionException('Glucose is not connected to any server.');
 		
 		$this->databaseName = $databaseName;
 		$this->tableName = $tableName;
 		$this->retrieveTableInformation();
-		$this->entityEngine = new EntityEngine($this->uniqueConstraints);
 	}
 
-	/**
-	 * Prepares the column retrieval statement.
-	 */
+	
 	private static function prepareTableInformationRetrievalStatement() {
-		$sql = <<<End
+		$query = <<<End
 SELECT
 	`columns`.`COLUMN_NAME`, `columns`.`ORDINAL_POSITION`, `columns`.`COLUMN_DEFAULT`, `columns`.`IS_NULLABLE`,
 	`columns`.`COLUMN_TYPE`, `columns`.`CHARACTER_MAXIMUM_LENGTH`, `columns`.`EXTRA`,
@@ -146,32 +73,27 @@ WHERE `columns`.`TABLE_SCHEMA` = ?
 AND `columns`.`TABLE_NAME` = ?
 ORDER BY `columns`.`ORDINAL_POSITION`
 End;
-		self::$tableInformationQuery = self::$mysqli->prepare($sql);
-		if(self::$mysqli->errno > 0) throw MySQLErrorException::findClass(self::$mysqli);
+		self::$tableInformationQuery = new Statements\SelectStatement($query, 'ss');
 	}
 
-	/**
-	 * Retrieves all the columns and their meta-information of the table and constructs new column objects for every one.
-	 * @todo Lock constraints by using constructor instead of addColumn
-	 * @todo Foreign keys should point at columns and columns at tables. Lazy loading
-	 */
+	
 	private function retrieveTableInformation() {
+		$statement = self::$tableInformationQuery;
 		$this->columns = array();
 		$this->uniqueConstraints = array();
 		$this->foreignKeyConstraints = array();
 		
-		$this->bindAndExecute(self::$tableInformationQuery, 'ss', array($this->databaseName, $this->tableName));
-		self::$tableInformationQuery->store_result();
-		if(self::$tableInformationQuery->num_rows() == 0)
-			throw new E\MissingTableException("The table '".$this->tableName."' does not exist.");
+		$statement->bindAndExecute(array($this->databaseName, $this->tableName));
+		if($statement->rows == 0)
+			throw new E\MissingTableException("The table $this->name does not exist.");
 		
-		self::$tableInformationQuery->bind_result($name, $ordinalPosition, $defaultValue, $isNullable, $type, $maxLength, $extra,
+		$statement->stmt->bind_result($name, $position, $defaultValue, $isNullable, $type, $maxLength, $extra,
 		$constraintType, $constraintName, $referencedTableName, $referencedColumnName, $updateRule, $deleteRule,
 		$refererConstraintName, $refererTableName, $refererColumnName);
 		
-		while(self::$tableInformationQuery->fetch()) {
+		while($statement->fetch()) {
 			if(!isset($this->columns[$name]))
-				$this->columns[$name] = new Column((string) $name, (string) $type, (integer) $maxLength, (boolean) ($isNullable == 'NO'), $defaultValue, (string) $extra);
+				$this->columns[$name] = new Column($name, $position, $type, $maxLength, $isNullable == 'NO', $defaultValue, $extra);
 			$column = $this->columns[$name];
 			if($constraintType !== null) {
 				switch($constraintType) {
@@ -195,21 +117,17 @@ End;
 				}
 			}
 		}
-		self::$tableInformationQuery->free_result();
+		$statement->free_result();
 		
-		// TODO: We may be able to work without one! Would be kewl and kind of easy, because there wouldn't be any foreign keys.
 		if(!isset($this->primaryKeyConstraint))
-			throw new E\MissingPrimaryKeyConstraintException('The table "'.$this->tableName.'" does not have any primary key constraints.');
+			throw new E\MissingPrimaryKeyConstraintException("The table $this->name does not have any primary key constraints.");
 	}
 	
-	/**
-	 * Magic method, which returns various properties of the table.
-	 * @ignore
-	 * @param string $name Name of the property to return
-	 * @return mixed Value of the property
-	 */
+	
 	public function __get($name) {
 		switch($name) {
+			case 'name':
+				return "`$this->databaseName`.`$this->tableName`";
 			case 'columns':
 				return $this->columns;
 			case 'primaryKeyConstraint':
@@ -219,29 +137,6 @@ End;
 		}
 	}
 	
-	private function bindAndExecute(\mysqli_stmt $statement, $types, array $values) {
-		$statementValues = array($types);
-		foreach($values as &$value)
-			$statementValues[] = &$value;
-		$noParams = count($values);
-		if(strlen($types) != $noParams)
-			throw new E\ParameterCountMismatchException('There is a mismatch between the number of statement types and parameters.');
-		if($noParams > 0)
-			call_user_func_array(array(&$statement, 'bind_param'), $statementValues);
-		$statement->execute();
-		if(self::$mysqli->errno > 0) throw MySQLErrorException::findClass(self::$mysqli);
-	}
-	
-	private function implode($tokens, $glue = '', $wrapper = '', $replacement = null) {
-		$string = '';
-		$noTokens = count($tokens);
-		if($noTokens == 0)
-			return $string;
-		foreach($tokens as $token)
-			$string .= $wrapper.(isset($replacement)?$replacement:$token).$wrapper.$glue;
-		return substr($string, 0, -strlen($glue));
-	}
-	
 	private static function createColumnHash(array $columnNames) {
 		$compoundHash = '';
 		foreach($columnNames as $columnName)
@@ -249,326 +144,151 @@ End;
 		return sha1($compoundHash);
 	}
 	
-	/**
-	 * INSERTs a set of data into the table.
-	 * @param array $insertValues Full set of values as an indexed array
-	 * @return int The last mysql insert id
-	 */
-	private function insert(Entity $entity) {
-		if($entity->inDB)
-			throw new E\EntityAlreadyInDatabaseException('The entity you are trying to insert already exists in the database.');
+	
+	private function insert(array $insertValues) {
+		$insertValuesColumnNames = array_keys($insertValues);
 		
-		$insertValuesColumnNames = array();
-		$statementTypes = "";
-		$statementValues = array();
-		foreach($entity->fields as $columnName => $field) {
-			if(!$field->setToDefault) {
-				$insertValuesColumnNames[] = $columnName;
-				$statementTypes .= $field->column->statementType;
-				$statementValues[] = $field->value;
-			}
-		}
-		
-		$statementIdentifier = $this->createColumnHash($insertValuesColumnNames);
+		$statementIdentifier = sha1(array_reduce($insertValuesColumnNames, function($previous, $value) {return $previous.sha1($value);}, ''));
 		if(!array_key_exists($statementIdentifier, $this->insertStatements)) {
-			$sql = 'INSERT INTO `'.$this->databaseName.'`.`'.$this->tableName.'` ';
-			$sql .= '('.$this->implode($this->columns, ',', '`').') ';
 			$placeholders = array();
-			foreach($this->columns as $column)
-				if(in_array($column->name, $insertValuesColumnNames))
+			$statementTypes = "";
+			foreach($this->columns as $column) {
+				if(in_array($column->name, $insertValuesColumnNames)) {
 					$placeholders[] = '?';
-				elseif($column->defaultCurrentTimestamp)
+					$statementTypes .= $column->statementType;
+				} elseif($column->defaultCurrentTimestamp) {
 					$placeholders[] = 'DEFAULT';
-				else
+				} else {
 					$placeholders[] = "DEFAULT(`$column->name`)";
-			$sql .= 'VALUES ('.$this->implode($placeholders, ',').')';
-			$stmt = self::$mysqli->prepare($sql);
-			if($stmt === false) throw MySQLErrorException::findClass(self::$mysqli);
-			$this->insertStatements[$statementIdentifier] = $stmt;
+				}
+			}
+			$query  = 'INSERT INTO `'.$this->databaseName.'`.`'.$this->tableName.'` ';
+			$query .= '(`'.implode('`, `', $this->columns).'`) ';
+			$query .= 'VALUES ('.implode(',', $placeholders).')';
+			$statement = new Statements\InsertStatement($query, $types);
+			$this->insertStatements[$statementIdentifier] = $statement;
+		} else {
+			$statement = $this->insertStatements[$statementIdentifier];
 		}
-		$this->bindAndExecute($this->insertStatements[$statementIdentifier], $statementTypes, $statementValues);
-		foreach($entity->fields as $columnName => $field) {
-			if($field->column->isAutoIncrement && self::$mysqli->insert_id > 0)
-				$field->dbValue = self::$mysqli->insert_id;
-			$field->dbInserted();
-		}
-		$entity->inDB = true;
-		$this->entityEngine->updateIdentifiersDB($entity);
+		$statement->bindAndExecute(array_values($insertValues));
+		return $statement->insertID > 0;
 	}
 	
-	/**
-	 * SELECTs an entity in the database and returns its values.
-	 * @param array $uniqueValues Indexed array of unique values identifying the entry
-	 * @param Constraints\UniqueConstraint $constraint {@link Constraint Constraint}the values identify,
-	 * if null {@link Constraints\PrimaryKeyConstraint primary key} is assumed
-	 * @throws NonExistentEntityException
-	 * @throws MultipleEntitiesException
-	 * @return Associative array over the resulting values
-	 */
+	
 	public function select(array $uniqueValues, Constraints\UniqueConstraint $constraint) {
 		if(!in_array($constraint, $this->uniqueConstraints, true))
-			throw new E\InvalidUniqueConstraintException('The unique constraint does not match any constraint in the table.');
-		if(in_array(null, $uniqueValues, true))
-			throw new E\InvalidUniqueValuesException('Unique values cannot be null.');
-		
-		$entity = $this->entityEngine->findModel($uniqueValues, $constraint);
-		if($entity !== null)
-			return $entity;
-		$entity = $this->entityEngine->findDB($uniqueValues, $constraint);
-		if($entity !== null)
-			throw new E\EntityValuesChangedException('The values you specified no longer match an entity.');
+			throw new E\InvalidUniqueConstraintException("The unique constraint '$constraint->name' does not match any constraint in the table $this->name.");
+		if(false !== $index = array_search(null, $uniqueValues, true))
+			throw new E\InvalidUniqueValuesException($this->name.'.`'.$constraint->columns[$index]->name.'` cannot contain null values when selecting a single row.');
+		if(count($uniqueValues) != count($constraint->columns))
+			throw new E\InvalidUniqueValuesException("The number of unique values (".count($uniqueValues).") must match the number of columns in the constraint '$constraint->name' (".count($constraint->columns).")");
 		
 		if(!isset($constraint->selectStatement)) {
-			$sql = 'SELECT `'.implode('`, `', array_diff($this->columns, $constraint->columns)).'` ';
-			$sql .= 'FROM `'.$this->databaseName.'`.`'.$this->tableName.'` ';
-			$sql .= 'WHERE `'.implode('` = ? AND `', $constraint->columns).'` = ?';
-			$stmt = self::$mysqli->prepare($sql);
-			if($stmt === false) throw MySQLErrorException::findClass(self::$mysqli);
-			$constraint->selectStatement = $stmt;
+			$query  = 'SELECT `'.implode('`, `', array_diff($this->columns, $constraint->columns)).'` ';
+			$query .= 'FROM '.$this->name.' ';
+			$query .= 'WHERE `'.implode('` = ? AND `', $constraint->columns).'` = ?';
+			$statement = new Statements\SelectStatement($query, $constraint->statementTypes);
+			$constraint->selectStatement = $statement;
+		} else {
+			$statement = $constraint->selectStatement;
 		}
-		$this->bindAndExecute($constraint->selectStatement, $constraint->statementTypes, $uniqueValues);
-		$constraint->selectStatement->store_result();
+		$statement->bindAndExecute($uniqueValues);
 		
-		$values = null;
-		$numberOfRowsReturned = $constraint->selectStatement->num_rows;
-		if($numberOfRowsReturned == 1) {
-			$metadata = $constraint->selectStatement->result_metadata();
+		if($statement->rows == 1) {
 			$fields = array();
 			$values = array();
-			while($field = $metadata->fetch_field())
-				$fields[] = &$values[$field->name];
-			call_user_func_array(array(&$constraint->selectStatement, 'bind_result'), $fields);
-			$constraint->selectStatement->fetch();
-			$constraint->selectStatement->free_result();
-			
-			/* TODO: Not sure if this is neccessary any longer. We always fetch all values anyways.
-			 * Probably a left over from the lazy loading feature.
-			 */
-			if($constraint != $this->primaryKeyConstraint) {
-				$primaryKeyValues = array();
-				foreach($this->primaryKeyConstraint->columns as $column)
-					$primaryKeyValues[] = $values[$column->name];
-				$entity = $this->entityEngine->findDB($primaryKeyValues, $this->primaryKeyConstraint);
-			}
-			if($entity === null)
-				$entity = $this->newEntity();
-			foreach($constraint->columns as $index => $column)
-				if(!isset($entity->fields[$column->name]->value))
-					$entity->fields[$column->name]->dbValue = $uniqueValues[$index];
-			foreach($values as $fieldName => $fieldValue)
-				if(!isset($entity->fields[$fieldName]->value))
-					$entity->fields[$fieldName]->dbValue = $fieldValue;
-			$entity->inDB = true;
-			$this->entityEngine->updateIdentifiersDB($entity);
-			$this->entityEngine->updateIdentifiersModel($entity);
-			return $entity;
-		} elseif($numberOfRowsReturned < 1) {
-			$constraint->selectStatement->free_result();
-			throw new E\NonExistentEntityException('The values you specified do not match any entry in the table.');
+			foreach($this->columns as $index => $column)
+				if(false !== $argumentPosition = array_search($column, $constraint, true))
+					$values[$index] = $uniqueValues[$argumentPosition];
+				else
+					$fields[] = &$values[$index];
+			$statement->bindResult($fields);
+			$statement->fetch();
+			$statement->freeResult();
+			return $values;
+		} elseif($statement->rows < 1) {
+			$statement->freeResult();
+			throw new E\NoSuchRowException("The values you specified for the constraint '$constraint->name' do not match any row in the table $this->name.");
 		} else {
-			$constraint->selectStatement->free_result();
-			throw new E\MultipleEntitiesException('The values you specified match two or more entries in the table.');
+			$statement->freeResult();
+			throw new E\MultipleRowsReturnedException("The values you specified for the constraint '$constraint->name' match two or more rows in the table $this->name.");
 		}
 	}
 	
-	private function refresh(Entity $entity) {
-		if(!$entity->inDB)
-			throw new E\EntityNotInDatabaseException('The entity you are trying to refresh does not exist in the database.');
+	private function update(array $primaryKeyValues, array $updateValues, array $updateDefaultsColumnNames) {
+		$updateValuesColumnNames = array_keys($updateValues);
 		
-		$refreshColumnNames = array();
-		foreach($entity->fields as $name => $field)
-			if($field->updateModel)
-				$refreshColumnNames[] = $name;
-		
-		if(empty($refreshColumnNames))
-			return;
-		$constraint = $this->primaryKeyConstraint;
-		$statementIdentifier = $this->createColumnHash($refreshColumnNames);
-		if(!array_key_exists($statementIdentifier, $constraint->refreshStatements)) {
-			$sql = 'SELECT `'.implode('`, `', $refreshColumnNames).'` ';
-			$sql .= 'FROM `'.$this->databaseName.'`.`'.$this->tableName.'` ';
-			$sql .= 'WHERE `'.implode('` = ? AND `', $constraint->columns).'` = ?';
-			$stmt = self::$mysqli->prepare($sql);
-			if($stmt === false) throw MySQLErrorException::findClass(self::$mysqli);
-			$constraint->refreshStatements[$statementIdentifier] = $stmt;
-		}
-		$refreshStatement = $constraint->refreshStatements[$statementIdentifier];
-		
-		$entityValues = array();
-		foreach($constraint->columns as $column)
-			$entityValues[$column->name] = $entity->fields[$column->name]->value;
-		$this->bindAndExecute($refreshStatement, $constraint->statementTypes, $entityValues);
-		$refreshStatement->store_result();
-		
-		$numberOfRowsReturned = $refreshStatement->num_rows;
-		if($numberOfRowsReturned == 1) {
-			$metadata = $refreshStatement->result_metadata();
-			$fields = array();
-			$values = array();
-			while($field = $metadata->fetch_field())
-				$fields[] = &$values[$field->name];
-			call_user_func_array(array(&$refreshStatement, 'bind_result'), $fields);
-			$refreshStatement->fetch();
-			$refreshStatement->free_result();
-		} elseif($numberOfRowsReturned < 1) {
-			$refreshStatement->free_result();
-			throw new E\NonExistentEntityException('The values you specified do not match any entry in the table.');
-		} else {
-			$refreshStatement->free_result();
-			throw new E\MultipleEntitiesException('The values you specified match two or more entries in the table.');
-		}
-		
-		foreach($values as $columnName => $value)
-			$entity->fields[$columnName]->dbValue = $value;
-	}
-	
-	/**
-	 * Updates a dataset in the table
-	 * @param array $updateValues Associative array containing the names and values of the fields to be updated
-	 * @param string $updateFieldStatementTypes Concatenated string composed of the types of the fields to be updated
-	 * @param $primaryKeyValues Indexed array containing the primary key values of the dataset to be updated
-	 */
-	private function update(Entity $entity) {
-		if(!$entity->inDB)
-			throw new E\EntityNotInDatabaseException('The entity you are trying to delete does not exist in the database.');
-		
-		$updateValuesColumnNames = array();
-		$updateDefaultsColumnNames = array();
-		$statementTypes = "";
-		$statementValues = array();
-		foreach($entity->fields as $columnName => $field) {
-			if($field->updateDB && !$field->setToDefault) {
-				$updateValuesColumnNames[] = $columnName;
-				$statementTypes .= $field->column->statementType;
-				$statementValues[] = $field->value;
-			} elseif($field->updateDB) {
-				$updateDefaultsColumnNames[] = $columnName;
-			}
-		}
-		if(count($updateValuesColumnNames) == 0 && count($updateDefaultsColumnNames) == 0)
-			return;
-		$statementTypes .= $this->primaryKeyConstraint->statementTypes;
-		$statementValues = array_merge($statementValues, $entity->getDBValues($this->primaryKeyConstraint->columns));
-		
-		$statementIdentifier =
-			$this->createColumnHash($updateValuesColumnNames).
-			$this->createColumnHash($updateDefaultsColumnNames);
+		$statementIdentifier = sha1(
+				array_reduce($updateValuesColumnNames, function($previous, $value) {return $previous.sha1($value);}, '').
+				array_reduce($updateDefaultsColumnNames, function($previous, $value) {return $previous.sha1($value);}, ''));
 		if(!array_key_exists($statementIdentifier, $this->primaryKeyConstraint->updateStatements)) {
-			$sql = 'UPDATE `'.$this->databaseName.'`.`'.$this->tableName.'` ';
-			$placeholders = array();
+			$parameters = array();
 			foreach($updateValuesColumnNames as $columnName)
-				$placeholders[] = "`$columnName`=?";
+				$parameters[] = "`$columnName`=?";
 			foreach($updateDefaultsColumnNames as $columnName)
 				if($this->columns[$columnName]->defaultCurrentTimestamp)
-					$placeholders[] = "`$columnName`=DEFAULT";
+					$parameters[] = "`$columnName`=DEFAULT";
 				else
-					$placeholders[] = "`$columnName`=DEFAULT(`$columnName`)";
-			$sql .= 'SET '.implode(',', $placeholders);
-			$sql .= ' WHERE `'.implode('` = ? AND `', $this->primaryKeyConstraint->columns).'` = ?';
-			$stmt = self::$mysqli->prepare($sql);
-			if($stmt === false) throw MySQLErrorException::findClass(self::$mysqli);
-			$this->primaryKeyConstraint->updateStatements[$statementIdentifier] = $stmt;
+					$parameters[] = "`$columnName`=DEFAULT(`$columnName`)";
+			$query  = 'UPDATE '.$this->name.' ';
+			$query .= 'SET '.implode(',', $parameters);
+			$query .= ' WHERE `'.implode('` = ? AND `', $this->primaryKeyConstraint->columns).'` = ?';
+			
+			$statementTypes = "";
+			foreach($updateValuesColumnNames as $columnName)
+				$statementTypes .= $this->columns[$columnName]->statementType;
+			$statementTypes .= $this->primaryKeyConstraint->statementTypes;
+			
+			$statement = new Statements\UpdateStatement($query, $statementTypes);
+			$this->primaryKeyConstraint->updateStatements[$statementIdentifier] = $statement;
+		} else {
+			$statement = $this->primaryKeyConstraint->updateStatements[$statementIdentifier];
 		}
-		$updateStatement = $this->primaryKeyConstraint->updateStatements[$statementIdentifier];
-		$this->bindAndExecute($updateStatement, $statementTypes, $statementValues);
-		$numberOfRowsAffected = $updateStatement->affected_rows;
-		if($numberOfRowsAffected < 1) {
-			throw new E\NoAffectedRowException('The values you specified do not match any entry in the table or the update caused no changes.');
-		} elseif($numberOfRowsAffected > 1) {
-			throw new E\MultipleEntitiesException('The values you specified match two or more entries in the table.');
+		
+		$statement->bindAndExecute(array_merge(array_values($updateValues), $primaryKeyValues));
+		if($statement->rows < 1) {
+			throw new E\NoAffectedRowException("The values you specified for the primary key do not match any row in the table $this->name.");
+		} elseif($statement->rows > 1) {
+			throw new E\MultipleRowsAffectedException("The values you specified for the primary key match two or more rows in the table $this->name.");
 		}
-		foreach($entity->fields as $field)
-			$field->dbUpdated();
-		$this->entityEngine->updateIdentifiersDB($entity);
 	}
 	
-	public function delete(Entity $entity) {
-		if(!$entity->inDB) {
-			$entity->deleted = true;
-			return;
-		}
+	public function delete(array $primaryKeyValues) {
 		if(!isset($this->primaryKeyConstraint->deleteStatement)) {
-			$sql = 'DELETE FROM `'.$this->databaseName.'`.`'.$this->tableName.'` ';
-			$sql .= 'WHERE `'.implode('` = ? AND `', $this->primaryKeyConstraint->columns).'` = ?';
-			$stmt = self::$mysqli->prepare($sql);
-			if($stmt === false) throw MySQLErrorException::findClass(self::$mysqli);
-			$this->primaryKeyConstraint->deleteStatement = $stmt;
+			$query = 'DELETE FROM '.$this->name.' ';
+			$query .= 'WHERE `'.implode('` = ? AND `', $this->primaryKeyConstraint->columns).'` = ?';
+			$statement = new Statements\DeleteStatement($query, $this->primaryKeyConstraint->statementTypes);
+			$this->primaryKeyConstraint->deleteStatement = $statement;
+		} else {
+			$statement = $this->primaryKeyConstraint->deleteStatement;
 		}
-		$this->bindAndExecute(
-			$this->primaryKeyConstraint->deleteStatement,
-			$this->primaryKeyConstraint->statementTypes,
-			$entity->getDBValues($this->primaryKeyConstraint->columns));
-		$numberOfRowsAffected = $this->primaryKeyConstraint->deleteStatement->affected_rows;
-		if($numberOfRowsAffected < 1) {
-			throw new E\NoAffectedRowException('The values you specified do not match any entry in the table.');
-		} elseif($numberOfRowsAffected > 1) {
-			throw new E\MultipleEntitiesException('The values you specified match two or more entries in the table.');
-		}
-		$entity->deleted = true;
-		$entity->inDB = false;
+		$this->bindAndExecute($primaryKeyValues);
+		if($statement->rows < 1)
+			throw new E\NoAffectedRowException("The values you specified for the primary key do not match any row in the table $this->name.");
+		elseif($statement->rows > 1)
+			throw new E\MultipleRowsAffectedException("The values you specified for the primary key match two or more rows in the table $this->name.");
 	}
 	
 	public function exists(array $uniqueValues, Constraints\UniqueConstraint $constraint) {
-		if(in_array(null, $uniqueValues, true))
-			throw new E\InvalidUniqueValuesException('Unique values cannot be null.');
-		$fromModel = $this->entityEngine->findModel($uniqueValues, $constraint);
-		// TODO: When returning true her, we need to be sure that this change will be committed before any potential update.
-		if($fromModel !== null && !$fromModel->deleted)
-			return true;
-		if($this->entityEngine->findDB($uniqueValues, $constraint) === null) {
-			if(!isset($constraint->existenceStatement)) {
-				$sql = 'SELECT NULL FROM `'.$this->databaseName.'`.`'.$this->tableName.'` ';
-				$sql .= 'WHERE `'.implode('` = ? AND `', $constraint->columns).'` = ?';
-				$stmt = self::$mysqli->prepare($sql);
-				if($stmt === false) throw MySQLErrorException::findClass(self::$mysqli);
-				$constraint->existenceStatement = $stmt;
-			}
-			$this->bindAndExecute($constraint->existenceStatement, $constraint->statementTypes, $uniqueValues);
-			$constraint->existenceStatement->store_result();
-			$numberOfRowsReturned = $constraint->existenceStatement->num_rows;
-			$constraint->existenceStatement->free_result();
-			if($numberOfRowsReturned == 1)
-				return true;
-			elseif($numberOfRowsReturned < 1)
-				return false;
-			else
-				throw new E\MultipleEntitiesException('The values you specified match two or more entries in the table.');
-		}
-		return false;
-	}
-	
-	public function syncWithDB(Entity $entity, Field $requiredField = null) {
-		if(!$entity->deleted) {
-			if($entity->inDB) {
-				$this->update($entity);
-			} else {
-				$this->insert($entity);
-				if($requiredField !== null && $requiredField->updateModel)
-					$this->refresh($entity);
-			}
+		if(false !== $index = array_search(null, $uniqueValues, true))
+			throw new E\InvalidUniqueValuesException($this->name.'.`'.$constraint->columns[$index]->name.'` cannot contain null values when selecting a single row.');
+		if(!isset($constraint->existenceStatement)) {
+			$query = 'SELECT NULL FROM '.$this->name.' ';
+			$query .= 'WHERE `'.implode('` = ? AND `', $constraint->columns).'` = ?';
+			$statement = new Statements\SelectStatement($query, $constraint->statementTypes);
+			$constraint->existenceStatement = $statement;
 		} else {
-			$this->delete($entity);
+			$statement = $constraint->existenceStatement;
 		}
-	}
-	
-	public function newEntity() {
-		$entity = new Entity($this->columns);
-		$entity->table = $this;
-		return $entity;
-	}
-	
-	public function updateIdentifiers(Entity $entity) {
-		$this->entityEngine->updateIdentifiersModel($entity);
-	}
-	
-	public function dereference(Entity $entity) {
-		if($entity->referenceCount == 0) {
-			try {
-				$this->syncWithDB($entity);
-			} catch(\Exception $e) { }
-			$this->entityEngine->dereference($entity);
-			if(isset($e))
-				throw $e;
-		}
+		$statement->bindAndExecute($uniqueValues);
+		$numberOfRowsReturned = $statement->rows;
+		$statement->freeResult();
+		if($numberOfRowsReturned == 1)
+			return true;
+		elseif($numberOfRowsReturned < 1)
+			return false;
+		else
+			throw new E\MultipleRowsReturnedException("The values you specified for the constraint '$constraint->name' match two or more rows in the table $this->name.");
+		return false;
 	}
 }

@@ -1,5 +1,5 @@
 <?php
-namespace Glucose\Exceptions\Entity;
+namespace Glucose\Exceptions\EntityEngine;
 class ModelConstraintCollisionException extends DuplicateEntityException {
 	
 }

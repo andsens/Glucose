@@ -83,6 +83,8 @@ class Field {
 	
 	public function __unset($name) {
 		if($name == 'value') {
+			if($this->column->default === null && $this->column->notNull)
+				throw new E\Type\NotNullValueExpectedException("The field $this->exceptionName cannot be unset because it has no default value.");
 			$this->setToDefault = true;
 			$this->updateDB = true;
 			if($this->column->defaultCurrentTimestamp)

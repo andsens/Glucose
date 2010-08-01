@@ -1,285 +1,124 @@
 <?php
-/**
- * Model is responsible for the logical computation in the ORM,
- * it is the front-end of this framework as well.
- * In order to take advantage of this framewrok, this class needs to be extended
- * with classes matching the names of database tables.
- * @author andsens
- */
 namespace Glucose;
-use \Glucose\Exceptions\User as E;
-use \Glucose\Exceptions\Table as TE;
+use Glucose\Exceptions\User as E;
 abstract class Model {
-	/**
-	 * Associativ array of tables that have been initialized
-	 * @var array
-	 */
-	private static $tables = array();
 	
-	/**
-	 * CakePHPs Inflector class, slightly modified.
-	 * Works quite well.
-	 * @var Inflector
-	 */
-	protected static $inflector;
+	private static $entityEngines;
 	
-	/**
-	 * Table this model is associated with
-	 * @var Table
-	 */
-	private $table;
+	private $entityEngine;
 	
-	/**
-	 * Allows multiple instances with the
-	 * same PK, to point to the same fields
-	 * @var Entity
-	 */
+	private $inflector;
+	
 	private $entity;
 	
 	protected static $className = 'Model';
 	
-	/**
-	 * Given a mysqli connection, the model connects to a database.
-	 * @param mysqli $mysqli
-	 */
+	protected static $compoundForeignKeysMapping = array();
+	
 	public static final function connect(\mysqli $mysqli) {
-		if(!isset(self::$inflector))
-			self::$inflector = new Inflector();
+		self::$entityEngines = array();
 		Table::connect($mysqli);
 	}
 	
-	/**
-	 * Constructs an object of the extending class
-	 * If initialized with a full set of primary keys,
-	 * it maps the object directly to an entry in
-	 * the corresponding table.
-	 * If no arguments a passed, the object will be treated as a
-	 * new entry in the table.
-	 *
-	 * @param mixed $primaryKeys Set of primary key values depending on the tables definition, it varies in size.
-	 */
 	public function __construct() {
 		if(static::$className != self::$className && static::$className != get_class($this))
 			throw new E\UnexpectedValueException('There is a discrepancy between the actual class name (\''.get_class($this).'\') and the value of $className (\''.static::$className.'\').');
-		$tableName = self::$inflector->tableize(get_class($this));
-		if(!array_key_exists($tableName, self::$tables))
-			self::$tables[$tableName] = new Table($tableName);
-		$this->table = self::$tables[$tableName];
-		
+		try {
+			$tableName = static::getTableName();
+		} catch(E\MethodExpectedException $e) {
+			$tableName = Inflector::tableize(get_class($this));
+		}
+		if(array_key_exists($tableName, self::$entityEngines))
+			self::$entityEngines[$tableName] = new EntityEngine($tableName);
+		$this->entityEngine = self::$entityEngines[$tableName];
+		$this->inflector = $this->entityEntine->inflector;
 		$arguments = func_get_args();
+		// Allow subclasses to have a constructor by allowing them to be able to call parent::__construct(func_get_args())
 		if(count($arguments) == 1 && is_array($arguments[0]))
 			$arguments = $arguments[0];
-		if(count($arguments) > 0) {
-			if(count($this->table->primaryKeyConstraint->columns) != count($arguments))
-				throw new E\ConstructorArgumentException('Wrong argument count.');
-			if(in_array(null, $arguments, true))
-				throw new E\ConstructorArgumentException('Illegal argument [null].');
-			foreach($this->table->primaryKeyConstraint->columns as $index => $column)
-				$arguments[$index] = $column->autobox($arguments[$index]);
-			try {
-				$this->entity = $this->table->select($arguments, $this->table->primaryKeyConstraint);
-				if($this->entity->deleted)
-					throw new E\EntityDeletedException('This entity has been deleted. You can no longer instantiate it.');
-			} catch(TE\NonExistentEntityException $e) {
-				throw new E\UndefinedPrimaryKeyException('The primary key you specified does not exist in the table.');
-			}
-		} else {
-			$this->entity = $this->table->newEntity();
-		}
-		
+		if(count($arguments) > 0)
+			$this->entity = $this->entityEngine->getEntityByPrimaryKey($arguments);
+		else
+			$this->entity = $this->entityEngine->newEntity();
 		$this->entity->referenceCount++;
 	}
 	
 	public static function __callStatic($name, $arguments) {
 		if($name == 'getTableName')
 			throw new E\MethodExpectedException('The method Glucose\Model::getTableName() cannot be called from a static context unless implemented in a subclass.');
-		
-		if(substr($name, 0, 6) == 'initBy') {
-			try {
-				$tableName = static::getTableName();
-			} catch(E\MethodExpectedException $e) {
-				if(static::$className == 'Model')
-					throw new E\VariableExpectedException('In order to initialize entities by unique identifiers, you will have to add the static variable $className or implement the static method getTableName().');
-				$tableName = self::$inflector->tableize(static::$className);
-			}
-			if(!array_key_exists($tableName, self::$tables))
-				self::$tables[$tableName] = new Table($tableName);
-			$table = self::$tables[$tableName];
-			
-			foreach($table->uniqueConstraints as $constraint) {
-				if($constraint == $table->primaryKeyConstraint)
-					continue;
-				$camelized = array();
-				foreach($constraint->columns as $column)
-					$camelized[] = self::$inflector->camelize($column->name);
-				if('initBy'.implode('And', $camelized) == $name) {
-					if(count($constraint->columns) == count($arguments)) {
-						foreach($constraint->columns as $index => $column)
-							$arguments[$index] = $column->autobox($arguments[$index]);
-						return new static($table->select($arguments, $constraint)->getValues($table->primaryKeyConstraint->columns));
-					} else {
-						$requiredNumberOfArguments = count($constraint->columns);
-					}
-				}
-			}
-			if(isset($requiredNumberOfArguments))
-				throw new E\InitializationArgumentException('The method \''.$name.'\' was called with '.count($arguments).' arguments but requires '.$requiredNumberOfArguments.'.');
+		if(substr($name, 0, 5) != 'initBy')
+			throw new E\UndefinedMethodException("The method '$name' does not exist.");
+		try {
+			$tableName = static::getTableName();
+		} catch(E\MethodExpectedException $e) {
+			if(static::$className == self::$className)
+				throw new E\VariableExpectedException('In order to initialize entities by unique identifiers, you will have to add the static variable $className.');
+			$tableName = Inflector::tableize(static::$className);
 		}
-		throw new E\UndefinedMethodException('Call to undefined method \''.$name.'\'.');
+		$entityEngine = self::$entityEngines[$tableName];
+		$constraint = $this->inflector->getConstraint(substr($name, 6));
+		$entity = $this->entityEngine->getEntity($constraint, $arguments);
+		return new static($entity->primaryKey);
 	}
 	
 	public function __call($name, $arguments) {
-		if($this->entity->deleted)
-			throw new E\EntityDeletedException('This entity has been deleted. You can no longer modify its fields.');
-		
-		if(substr($name, 0, 3) == 'set') {
-			foreach($this->table->uniqueConstraints as $constraint) {
-				if(count($constraint->columns) < 2)
-					continue;
-				$camelized = array();
-				foreach($constraint->columns as $column)
-					$camelized[] = self::$inflector->camelize($column->name);
-				if('set'.implode('And', $camelized) == $name) {
-					if(count($constraint->columns) == count($arguments)) {
-						// TODO: Be sure the values are not the same, otherwise simply return;
-						if(!in_array(null, $arguments, true)) {
-							foreach($this->table->uniqueConstraints as $checkConstraint) {
-								$overlappingColumns = array_intersect($constraint->columns, $checkConstraint->columns);
-								if(count($overlappingColumns) > 0) {
-									$values = $this->entity->getValues($checkConstraint->columns);
-									$valuesUnchanged = true;
-									foreach($overlappingColumns as $index => $column) {
-										$checkConstraintColumnIndex = array_search($column, $checkConstraint->columns);
-										if($values[$checkConstraintColumnIndex] != $arguments[$index]) {
-											$valuesUnchanged = false;
-											$values[$checkConstraintColumnIndex] = $arguments[$index];
-										}
-									}
-									if($valuesUnchanged)
-										continue;
-									if($this->table->exists($values, $checkConstraint))
-										throw new E\EntityCollisionException('Your changes collide with the unique values of an existing entity.');
-								}
-							}
-						}
-						foreach($constraint->columns as $index => $column) {
-							if($arguments[$index] === null && $column->notNull)
-								throw new E\Type\NotNullValueExpectedException('A not null field cannot be set to null.');
-							$arguments[$index] = $column->autobox($arguments[$index]);
-						}
-						foreach($constraint->columns as $index => $column)
-							if($arguments[$index] !== $this->entity->fields[$column->name]->value)
-								$this->entity->fields[$column->name]->modelValue = $arguments[$index];
-						$this->table->updateIdentifiers($this->entity);
-						return;
-					} else {
-						$requiredNumberOfArguments = count($constraint->columns);
-					}
-				}
-			}
-			if(isset($requiredNumberOfArguments))
-				throw new E\InitializationArgumentException('The method \''.$name.'\' was called with '.count($arguments).' arguments but requires '.$requiredNumberOfArguments.'.');
-			
+		if(substr($name, 0, 3) != 'set')
+			throw new E\UndefinedMethodException("The method '$name' does not exist.");
+		$constraint = $this->inflector->getConstraint(substr($name, 4));
+		$this->entity->atomicChange($constraint, $arguments);
+	}
+	
+	public function __get($name) {
+		$foreignKeyConstraint = $this->getCompoundFKConstraint($name);
+		if($foreignKeyConstraint != null)
+			return $entity->getCompoundFKObject($foreignKeyConstraint);
+		else
+			return $entity->getValue($this->inflector->getColumn($name));
+	}
+	
+	public function __isset($name) {
+		$foreignKeyConstraint = $this->getCompoundFKConstraint($name);
+		if($foreignKeyConstraint != null)
+			return $entity->compoundFKObjectIsSet($foreignKeyConstraint);
+		else
+			return $entity->valueIsSet($this->inflector->getColumn($name));
+	}
+	
+	public function __set($name, $value) {
+		$foreignKeyConstraint = $this->getCompoundFKConstraint($name);
+		if($foreignKeyConstraint != null)
+			$entity->setCompoundFKObject($foreignKeyConstraint, $value);
+		else
+			$entity->setValue($this->inflector->getColumn($name), $value);
+	}
+	
+	
+	public function __unset($name) {
+		$foreignKeyConstraint = $this->getCompoundFKConstraint($name);
+		if($foreignKeyConstraint != null)
+			$entity->unsetCompoundFKObject($foreignKeyConstraint);
+		else
+			$entity->unsetValue($this->inflector->getColumn($name));
+	}
+	
+	private function getCompoundFKConstraint($name) {
+		if(false !== $fieldNames = array_key_search($name, static::$compoundForeignKeysMapping))
+			return $this->inflector->getCompoundFKConstraintByFieldNames($fieldNames);
+		$foreignKeyConstraint = $this->inflector->getCompoundFKConstraintByFieldName($name);
+		if($foreignKeyConstraint != null) {
+			try {
+				$this->inflector->getColumn($name);
+				throw new E\NamingCollisionException("The foreign key '$foreignKeyConstraint->name' and the column `$name` map to the same field.");
+			} catch(E\UndefinedFieldException $e) {}
+			return $foreignKeyConstraint;
 		}
-		throw new E\UndefinedMethodException('Call to undefined method \''.$name.'\'.');
+		return null;
 	}
 	
 	public function delete() {
-		$this->table->delete($this->entity);
+		$this->entity->delete();
 	}
 	
-	/**
-	 * Magic method for retrieving values of fields that correspond to a field in the referenced table.
-	 * @ignore
-	 * @param string $name Name of the field
-	 * @return mixed Value of the field
-	 */
-	public function __get($name) {
-		$name = Model::$inflector->underscore($name);
-		$this->canAccess($name);
-		$field = $this->entity->fields[$name];
-		if($field->updateModel)
-			$this->table->syncWithDB($this->entity);
-		if($field->updateModel)
-			$this->table->refresh($this->entity);
-		return $field->value;
-	}
-	
-	/**
-	 * Returns true if a field value has been set.
-	 * False if it is null or has not been set yet.
-	 * @ignore
-	 * @param string $name Name of the field
-	 * @return bool Wether the field is set
-	 */
-	public function __isset($name) {
-		$name = Model::$inflector->underscore($name);
-		$this->canAccess($name);
-		$field = $this->entity->fields[$name];
-		if($this->entity->inDB && $field->updateModel)
-			$this->table->syncWithDB($this->entity);
-		return isset($field->value);
-	}
-	
-	/**
-	 * Magic method for setting values that correspond to a field in the referenced table.
-	 * @ignore
-	 * @param string $name Name of the field
-	 * @param mixed $value Value of the field
-	 */
-	public function __set($name, $value) {
-		$name = Model::$inflector->underscore($name);
-		$this->canAccess($name);
-		$field = $this->entity->fields[$name];
-		$value = $field->column->autobox($value);
-		if($value === null && $field->column->notNull)
-			throw new E\Type\NotNullValueExpectedException('A not null field cannot be set to null.');
-		if($value === $field->value)
-			return;
-		$updateIdentifiers = false;
-		foreach($this->table->uniqueConstraints as $constraint) {
-			if(false !== $index = array_search($field->column, $constraint->columns)) {
-				$updateIdentifiers = true;
-				$values = $this->entity->getValues($constraint->columns);
-				$values[$index] = $value;
-				if(!in_array(null, $values, true) && $this->table->exists($values, $constraint))
-					throw new E\EntityCollisionException('Your changes collide with the unique values of an existing entity.');
-			}
-		}
-		$field->modelValue = $value;
-		if($updateIdentifiers)
-			$this->table->updateIdentifiers($this->entity);
-	}
-	
-	/**
-	 * Unsets a field
-	 * @param string $name Name of the field
-	 */
-	public function __unset($name) {
-		$name = Model::$inflector->underscore($name);
-		$this->canAccess($name);
-		$field = $this->entity->fields[$name];
-		$field->column->canUnset();
-		unset($field->value);
-		foreach($this->table->uniqueConstraints as $constraint) {
-			if(in_array($field->column, $constraint->columns)) {
-				$this->table->updateIdentifiers($this->entity);
-				return;
-			}
-		}
-	}
-	
-	private function canAccess($name) {
-		if($this->entity->deleted)
-			throw new E\EntityDeletedException('This entity has been deleted. You can no longer access its fields.');
-		if(!isset($this->entity->fields[$name]))
-			throw new E\UndefinedPropertyException('The field \''.Model::$inflector->variable($name).'\' does not exists.');
-	}
-	
-	/**
-	 * Saves the object into the table if there are no other instances referring to the same entity.
-	 * @ignore
-	 */
 	public final function __destruct() {
 		$this->entity->referenceCount--;
 	}

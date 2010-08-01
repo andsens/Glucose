@@ -12,7 +12,7 @@ CREATE  TABLE IF NOT EXISTS `countries` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT ,
   `name` VARCHAR(255) NOT NULL ,
   PRIMARY KEY (`id`) ,
-  UNIQUE INDEX `UNIQUE_countries__name` (`name` ASC) )
+  UNIQUE INDEX `UQ_countries__name` (`name` ASC) )
 ENGINE = InnoDB;
 
 
@@ -28,7 +28,12 @@ CREATE  TABLE IF NOT EXISTS `cities` (
   `postal_code` SMALLINT UNSIGNED NOT NULL ,
   PRIMARY KEY (`id`) ,
   INDEX `FK_cities__country` (`country` ASC) ,
-  UNIQUE INDEX `UNIQUE_cities__country__postal_code` (`country` ASC, `postal_code` ASC) )
+  UNIQUE INDEX `UQ_cities__contry__postal_code` (`country` ASC, `postal_code` ASC) ,
+  CONSTRAINT `FK_cities__country`
+    FOREIGN KEY (`country` )
+    REFERENCES `countries` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 
@@ -43,10 +48,15 @@ CREATE  TABLE IF NOT EXISTS `people` (
   `last_name` VARCHAR(255) NOT NULL ,
   `email` VARCHAR(255) NULL ,
   `address` VARCHAR(255) NOT NULL ,
-  `city` INT NOT NULL ,
+  `city` INT UNSIGNED NOT NULL ,
   PRIMARY KEY (`id`) ,
   INDEX `FK_people__city` (`city` ASC) ,
-  UNIQUE INDEX `UNIQUE_people__email` (`email` ASC) )
+  UNIQUE INDEX `UQ_people__email` (`email` ASC) ,
+  CONSTRAINT `FK_people__city`
+    FOREIGN KEY (`city` )
+    REFERENCES `cities` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 
@@ -61,7 +71,13 @@ CREATE  TABLE IF NOT EXISTS `users` (
   `password` CHAR(40) NOT NULL ,
   `registered` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ,
   `last_login` TIMESTAMP NULL ,
-  PRIMARY KEY (`person`) )
+  PRIMARY KEY (`person`) ,
+  INDEX `FK_users__person` (`person` ASC) ,
+  CONSTRAINT `FK_users__person`
+    FOREIGN KEY (`person` )
+    REFERENCES `people` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 
@@ -79,6 +95,24 @@ CREATE  TABLE IF NOT EXISTS `overlapping_unique_keys` (
 ENGINE = InnoDB;
 
 
+-- -----------------------------------------------------
+-- Table `compund_foreign_key`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `compund_foreign_key` ;
+
+CREATE  TABLE IF NOT EXISTS `compund_foreign_key` (
+  `column1` INT NOT NULL ,
+  `column2` INT NOT NULL ,
+  PRIMARY KEY (`column1`, `column2`) ,
+  INDEX `fk_compund_foreign_key__column11` (`column1` ASC, `column2` ASC) ,
+  CONSTRAINT `fk_compund_foreign_key__column11`
+    FOREIGN KEY (`column1` , `column2` )
+    REFERENCES `overlapping_unique_keys` (`column1` , `column2` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
+ENGINE = InnoDB;
+
+
 
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
@@ -88,14 +122,15 @@ SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
 -- Data for table `countries`
 -- -----------------------------------------------------
 SET AUTOCOMMIT=0;
-INSERT INTO countries (`id`, `name`) VALUES ('1', 'Germany');
-INSERT INTO countries (`id`, `name`) VALUES ('2', 'Denmark');
-INSERT INTO countries (`id`, `name`) VALUES ('3', 'Norway');
-INSERT INTO countries (`id`, `name`) VALUES ('4', 'Sweden');
-INSERT INTO countries (`id`, `name`) VALUES ('5', 'Finland');
-INSERT INTO countries (`id`, `name`) VALUES ('6', 'Netherlands');
-INSERT INTO countries (`id`, `name`) VALUES ('7', 'Belgium');
-INSERT INTO countries (`id`, `name`) VALUES ('8', 'United States of America');
+
+insert into `countries` (`id`, `name`) values (1, 'Germany');
+insert into `countries` (`id`, `name`) values (2, 'Denmark');
+insert into `countries` (`id`, `name`) values (3, 'Norway');
+insert into `countries` (`id`, `name`) values (4, 'Sweden');
+insert into `countries` (`id`, `name`) values (5, 'Finland');
+insert into `countries` (`id`, `name`) values (6, 'Netherlands');
+insert into `countries` (`id`, `name`) values (7, 'Belgium');
+insert into `countries` (`id`, `name`) values (8, 'United States of America');
 
 COMMIT;
 
@@ -103,10 +138,11 @@ COMMIT;
 -- Data for table `cities`
 -- -----------------------------------------------------
 SET AUTOCOMMIT=0;
-INSERT INTO cities (`id`, `country`, `name`, `postal_code`) VALUES ('1', '2', 'Århus', '8000');
-INSERT INTO cities (`id`, `country`, `name`, `postal_code`) VALUES ('2', '1', 'Hamburg', '20095');
-INSERT INTO cities (`id`, `country`, `name`, `postal_code`) VALUES ('3', '5', 'Helsinki', '0');
-INSERT INTO cities (`id`, `country`, `name`, `postal_code`) VALUES ('4', '8', 'Andeby', '0');
+
+insert into `cities` (`id`, `country`, `name`, `postal_code`) values (1, 2, 'Århus', '8000');
+insert into `cities` (`id`, `country`, `name`, `postal_code`) values (2, 1, 'Hamburg', '20095');
+insert into `cities` (`id`, `country`, `name`, `postal_code`) values (3, 5, 'Helsinki', '0');
+insert into `cities` (`id`, `country`, `name`, `postal_code`) values (4, 8, 'Andeby', '0');
 
 COMMIT;
 
@@ -114,8 +150,9 @@ COMMIT;
 -- Data for table `people`
 -- -----------------------------------------------------
 SET AUTOCOMMIT=0;
-INSERT INTO people (`id`, `first_name`, `last_name`, `email`, `address`, `city`) VALUES ('1', 'Anders', 'Ingemann', 'anders@ingemann.de', 'Vej 13', '1');
-INSERT INTO people (`id`, `first_name`, `last_name`, `email`, `address`, `city`) VALUES ('2', 'Casper', 'Bach-Poulsen', 'casperbp@gmail.com', 'Somewhere', '1');
+
+insert into `people` (`id`, `first_name`, `last_name`, `email`, `address`, `city`) values (1, 'Anders', 'Ingemann', 'anders@ingemann.de', 'Vej 13', 1);
+insert into `people` (`id`, `first_name`, `last_name`, `email`, `address`, `city`) values (2, 'Casper', 'Bach-Poulsen', 'casperbp@gmail.com', 'Somewhere', 1);
 
 COMMIT;
 
@@ -123,7 +160,8 @@ COMMIT;
 -- Data for table `users`
 -- -----------------------------------------------------
 SET AUTOCOMMIT=0;
-INSERT INTO users (`person`, `nickname`, `password`, `registered`, `last_login`) VALUES ('1', 'andsens', '21298df8a3277357ee55b01df9530b535cf08ec1', NULL, NULL);
+
+insert into `users` (`person`, `nickname`, `password`, `registered`, `last_login`) values (1, 'andsens', '21298df8a3277357ee55b01df9530b535cf08ec1', NULL, NULL);
 
 COMMIT;
 
@@ -131,9 +169,10 @@ COMMIT;
 -- Data for table `overlapping_unique_keys`
 -- -----------------------------------------------------
 SET AUTOCOMMIT=0;
-INSERT INTO overlapping_unique_keys (`column1`, `column2`, `column3`) VALUES ('0', '1', '1');
-INSERT INTO overlapping_unique_keys (`column1`, `column2`, `column3`) VALUES ('1', '2', '3');
-INSERT INTO overlapping_unique_keys (`column1`, `column2`, `column3`) VALUES ('2', '4', '9');
-INSERT INTO overlapping_unique_keys (`column1`, `column2`, `column3`) VALUES ('3', '8', '27');
+
+insert into `overlapping_unique_keys` (`column1`, `column2`, `column3`) values (0, 1, 1);
+insert into `overlapping_unique_keys` (`column1`, `column2`, `column3`) values (1, 2, 3);
+insert into `overlapping_unique_keys` (`column1`, `column2`, `column3`) values (2, 4, 9);
+insert into `overlapping_unique_keys` (`column1`, `column2`, `column3`) values (3, 8, 27);
 
 COMMIT;

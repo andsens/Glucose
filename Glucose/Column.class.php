@@ -22,11 +22,15 @@ class Column {
 	 */
 	private $name;
 	
+	private $position;
+	
 	/**
 	 * MySQL type of the column
 	 * @var string
 	 */
 	private $type;
+	
+	private $columnType;
 	
 	private $unsigned;
 	
@@ -52,7 +56,7 @@ class Column {
 	 * Default value of the field
 	 * @var mixed
 	 */
-	private $default;
+	private $default = null;
 	
 	private $isAutoIncrement = false;
 	
@@ -67,24 +71,26 @@ class Column {
 	 * @param bool $notNull Wether the column cannot be null
 	 * @param mixed $default Default value
 	 */
-	public function __construct($name, $columnType, $maxLength, $notNull = false, $default = null, $extra = '') {
+	public function __construct($name, $position, $columnType, $maxLength, $notNull = false, $default = null, $extra = '') {
 		$this->name = $name;
+		$this->position = $position;
+		$this->columnType = $columnType;
 		$this->parseType($columnType);
 		$this->maxLength = $maxLength;
 		$this->notNull = $notNull;
-		$this->default = $default;
-		if(strtolower($extra) == 'auto_increment') {
+		if($default !== null)
+			$this->default = $this->autobox($default);
+		if(strtolower($extra) == 'auto_increment')
 			$this->isAutoIncrement = true;
-		}
 		if($this->type == 'timestamp') {
 			$this->onUpdateCurrentTimestamp = strtolower($extra) == 'on update current_timestamp';
 			$this->defaultCurrentTimestamp = strtolower($this->default) == 'current_timestamp';
 		}
 	}
 	
-	private function parseType($columnType) {
-		if(preg_match('/^([a-z]+)(\([^\)]+\))?( unsigned)?( zerofill)?$/', $columnType, $matches) != 1)
-			throw new TE\ColumnTypeParsingException('Could not parse a column type in the database.');
+	private function parseType() {
+		if(preg_match('/^([a-z]+)(\([^\)]+\))?( unsigned)?( zerofill)?$/', $this->columnType, $matches) != 1)
+			throw new TE\ColumnTypeParsingException("Unable to parse the columnType '$this->columnType' for the field `$this->name`");
 		$this->type = $matches[1];
 		$this->paddingLength = array_key_exists(4, $matches)?$matches[2]:0;
 		$this->unsigned = array_key_exists(3, $matches);
@@ -108,9 +114,12 @@ class Column {
 	public function autobox($value) {
 		$type = gettype($value);
 		if($type == 'NULL')
-			return $value;
+			if($this->notNull)
+				throw new E\Type\NotNullValueExpectedException("The field $this->exceptionName cannot be set to null.");
+			else
+				return $value;
 		if($type == 'array' || $type == 'resource' || $type == 'object')
-			throw new E\Type\InvalidTypeException('You can only assign primitive types to a property.');
+			throw new E\Type\InvalidTypeException("You can not assign an $type to a field.");
 		switch($this->type) {
 			case 'tinyint':
 				$value = intval($value);
@@ -155,17 +164,12 @@ class Column {
 		$min = $this->unsigned?0:-$range/2;
 		$max = $this->unsigned?$range:$range/2-1;
 		if($min > $value || $value > $max)
-			throw new E\Type\OutOfRangeException('The value is out of range.');
+			throw new E\Type\OutOfRangeException("The value for the field $this->exceptionName is out of range.");
 	}
 	
 	private function checkLength($value) {
 		if(strlen($value) > $this->maxLength)
-			throw new E\Type\CharacterLengthException('The value is too long.');
-	}
-	
-	public function canUnset() {
-		if($this->default === null && $this->notNull)
-			throw new E\Type\NotNullValueExpectedException('A not null field without a default value cannot be unset.');
+			throw new E\Type\CharacterLengthException("The value for the field $this->exceptionName is too long.");
 	}
 	
 	/**
@@ -178,6 +182,10 @@ class Column {
 		switch($name) {
 			case 'name':
 				return $this->name;
+			case 'exceptionName':
+				return "`$this->name` $this->columnType";
+			case 'position':
+				return $this->position;
 			case 'type':
 				return $this->type;
 			case 'unsigned':

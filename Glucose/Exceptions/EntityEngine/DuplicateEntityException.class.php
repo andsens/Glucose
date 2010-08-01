@@ -1,5 +1,5 @@
 <?php
-namespace Glucose\Exceptions\Entity;
+namespace Glucose\Exceptions\EntityEngine;
 class DuplicateEntityException extends \RuntimeException implements EntityException {
 	
 }
