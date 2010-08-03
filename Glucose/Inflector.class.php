@@ -1,80 +1,56 @@
 <?php
-/**
- * CakePHP(tm) :  Rapid Development Framework (http://www.cakephp.org)
- * Copyright 2005-2008, Cake Software Foundation, Inc. (http://www.cakefoundation.org)
- *
- * Licensed under The MIT License
- * Redistributions of files must retain the above copyright notice.
- */
-
 namespace Glucose;
 use Glucose\Exceptions\User as E;
 class Inflector {
+	
+	private static $classNameMapping;
+	public static function setClassNameMapping(array $classNameMapping) {
+		self::$classNameMapping = $classNameMapping;
+	}
 	
 	private $modelName;
 	private $tableName;
 	public function __construct($modelName, array $columns, array $constraints) {
 		$this->modelName = $modelName;
-		$this->tableName = $this->tableize($this->modelName);
+		$this->tableName = Inflector::getTableName($this->modelName);
 		foreach($constraints as $constraint) {
-			if($constraint instanceof Constraints\UniqueConstraint) {
-				if(count($constraint->columns) == 1)
-					continue;
-				$fields = array();
-				foreach($constraint->columns as $column)
-					$fields[] =  self::camelize($column->name);
-				$this->concatenations[implode('And', $fields)] = $constraint;
-			} else {
-				if(count($constraint->columns) == 1)
-					continue;
-				$compoundName =	self::variable(self::classify($constraint->referencedTable));
-				$compoundForeignKeysMapping[$compoundName] = $constraint;
-			}
+			if(count($constraint->columns) == 1)
+				continue;
+			$fields = array();
+			foreach($constraint->columns as $column)
+				$fields[] =  self::camelize($column->name);
+			$this->constraints[implode('And', $fields)] = $constraint;
 		}
 		foreach($columns as $column)
-			$this->fieldNameToColumn[self::variable($column->name)] = $column;
+			$this->columnNames[self::variable($column->name)] = $column;
 	}
 	
-	private $concatenations;
-	public function getConstraint($concatenation) {
-		if(!array_key_exists($fieldName, $this->concatenations))
-			throw new E\UndefinedMethodException("The method $this->modelName::$concatenation() does not exist.");
-		return $this->concatenations[$concatenation];
-	}
-	
-	private $fieldNameToColumn;
-	public function getColumn($fieldName) {
-		if(!array_key_exists($fieldName, $this->fieldNameToColumn))
-			throw new E\UndefinedFieldException("The field $this->modelName->$fieldName does not exist.");
-		return $this->fieldNameToColumn[$fieldName];
-	}
-	
-	private $compoundFKMapping;
-	public function getCompoundFKConstraintByFieldName($fieldName) {
-		if(!array_key_exists($fieldName, $this->compoundFKMapping))
-			return null;
-		return $this->compoundFKMapping[$fieldName];
-	}
-	
-	private $compoundFKMappingByFieldNames;
-	public function getCompoundFKConstraintByFieldNames(array $fieldNames) {
-		$hash = sha1(array_reduce($fieldNames, function($previous, $value) {return $previous.sha1($value);}, ''));
-		if(array_key_exists($hash, $this->compoundFKMappingByFieldNames))
-			return $this->compoundFKMappingByFieldNames[$hash];
-		$searchColumns = array();
-		foreach($fieldNames as $fieldName)
-			$searchColumns[] = $this->fieldNameToColumn[$fieldName];
-		$foundConstraint = null;
-		foreach($this->compoundFKMappingByFieldNames as $foreignKeyConstraint) {
-			$constraintColumnNames = array_map(function($column) {return $column->name;}, $foreignKeyConstraint->columns);
-			if(count(array_diff($constraintColumnNames, $searchColumns)) == 0) {
-				$foundConstraint = $foreignKeyConstraint;
-				break;
+	private $constraints;
+	public function getConstraint($fieldName, array $compoundConstraintMapping) {
+		if(array_key_exists($fieldName, $this->constraints))
+			return $this->constraints[$fieldName];
+		if(array_key_exists($fieldName, $compoundConstraintMapping)) {
+			foreach($this->constraints as $concatenation => $contraint) {
+				if($constraint->name == $compoundConstraintMapping[$fieldName]) {
+					if(count($constraint->columns) < 2)
+						throw new E\InvalidMappingException('You can only map constraints containing two or more columns.');
+					unset($this->constraints[$concatenation]);
+					return $this->constraints[$fieldName] = $constraint;
+				}
 			}
+			throw new E\UndefinedConstraintException("The constraint '$compoundConstraintMapping[$fieldName]' does not exist.");
 		}
-		if($foundConstraint === null)
-			throw new E\UndefinedForeignKeyException("The fields '".implode("', '", $fieldNames)." do not map to any foreign key.");
-		return $foundConstraint;
+	}
+	
+	private $columnNames;
+	public function getColumn($fieldName) {
+		if(!array_key_exists($fieldName, $this->columnNames))
+			throw new E\UndefinedFieldException("The field $this->modelName->$fieldName does not exist.");
+		return $this->columnNames[$fieldName];
+	}
+	
+	public static function getFieldName($className, $columnName) {
+		return self::variable($name);
 	}
 	
 	public function __get($name) {
@@ -85,6 +61,29 @@ class Inflector {
 				return $this->modelName;
 		}
 	}
+	
+	public static function getTableName($className) {
+		if(isset(self::$classNameMapping) && array_key_exists($className, self::$classNameMapping))
+			return self::$classNameMapping[$className];
+		return self::tableize($className);
+	}
+	
+	public static function getClassName($tableName) {
+		if(isset(self::$classNameMapping) && false !== $className = array_search($tableName, self::$classNameMapping))
+				return $className;
+		return self::classify($tableName);
+	}
+	
+	/**
+	 * CakePHP(tm) :  Rapid Development Framework (http://www.cakephp.org)
+	 * Copyright 2005-2008, Cake Software Foundation, Inc. (http://www.cakefoundation.org)
+	 *
+	 * Licensed under The MIT License
+	 * Redistributions of files must retain the above copyright notice.
+	 */
+	/**
+	 * This is a rewritten and more compact version of CakePHPs Inflector.
+	 */
 	
 	public function classify($tableName) {
 		return self::camelize(self::singularize($tableName));

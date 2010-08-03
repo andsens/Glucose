@@ -27,6 +27,30 @@ class EntityEngine {
 		}
 	}
 	
+	public function newEntity() {
+		
+	}
+	
+	public function getEntityByPrimaryKey(array $primaryKeyValues) {
+		
+	}
+	
+	public function getEntity(Constraints\UniqueConstraint $constraint, $constraintValues) {
+		
+	}
+	
+	public function columnValueChanged(Entity $entity, Column $column) {
+		
+	}
+	
+	public function constraintValuesChanged(Entity $entity, Constraint\Constraint $column) {
+		
+	}
+	
+	public function isColliding(array $entityValues) {
+		
+	}
+	
 	public function findModel(array $identifier, Constraints\UniqueConstraint $constraint) {
 		return $this->find($identifier, $constraint, $this->modelEntities);
 	}
