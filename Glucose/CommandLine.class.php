@@ -76,12 +76,14 @@ INSERT INTO `foreign_key_constraints` (`name`, `on_update`, `on_delete`) (
 	WHERE `CONSTRAINT_SCHEMA` = '$databaseName')
 End;
 		$uniqueColumnsInsert = <<<End
-INSERT INTO `references` (
-		`source_column`, `source_table`, `destination_column`,
-		`destination_table`, `constraint`) (
+INSERT INTO `foreign_key_columns` (
+		`source_column`, `source_table`,
+		`destination_column`, `destination_table`,
+		`constraint`) (
 	SELECT
-		`column_usage`.`TABLE_NAME`, `column_usage`.`COLUMN_NAME`, `column_usage`.`REFERENCED_TABLE_NAME`,
-		`column_usage`.`REFERENCED_COLUMN_NAME`, `column_usage`.`CONSTRAINT_NAME`
+		`column_usage`.`COLUMN_NAME`, `column_usage`.`TABLE_NAME`,
+		`column_usage`.`REFERENCED_COLUMN_NAME`, `column_usage`.`REFERENCED_TABLE_NAME`,
+		`column_usage`.`CONSTRAINT_NAME`
 	FROM `information_schema`.`KEY_COLUMN_USAGE` column_usage
 	JOIN `information_schema`.`REFERENTIAL_CONSTRAINTS` constraints
 		ON `constraints`.`CONSTRAINT_SCHEMA` = `column_usage`.`CONSTRAINT_SCHEMA`
