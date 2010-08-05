@@ -92,8 +92,8 @@ End;
 		$refererConstraintName, $refererTableName, $refererColumnName);
 		
 		while($statement->fetch()) {
-			if(!isset($this->columns[$name]))
-				$this->columns[$name] = new Column($name, $position, $type, $maxLength, $isNullable == 'NO', $defaultValue, $extra);
+			if(!isset($this->columns[$position-1]))
+				$this->columns[$position-1] = new Column($name, $position, $type, $maxLength, $isNullable == 'NO', $defaultValue, $extra);
 			$column = $this->columns[$name];
 			if($constraintType !== null) {
 				switch($constraintType) {
@@ -165,11 +165,9 @@ End;
 			$query  = 'INSERT INTO `'.$this->databaseName.'`.`'.$this->tableName.'` ';
 			$query .= '(`'.implode('`, `', $this->columns).'`) ';
 			$query .= 'VALUES ('.implode(',', $placeholders).')';
-			$statement = new Statements\InsertStatement($query, $types);
-			$this->insertStatements[$statementIdentifier] = $statement;
-		} else {
-			$statement = $this->insertStatements[$statementIdentifier];
+			$this->insertStatements[$statementIdentifier] = new Statements\InsertStatement($query, $statementTypes);
 		}
+		$statement = $this->insertStatements[$statementIdentifier];
 		$statement->bindAndExecute(array_values($insertValues));
 		return $statement->insertID > 0;
 	}
@@ -187,11 +185,9 @@ End;
 			$query  = 'SELECT `'.implode('`, `', array_diff($this->columns, $constraint->columns)).'` ';
 			$query .= 'FROM '.$this->name.' ';
 			$query .= 'WHERE `'.implode('` = ? AND `', $constraint->columns).'` = ?';
-			$statement = new Statements\SelectStatement($query, $constraint->statementTypes);
-			$constraint->selectStatement = $statement;
-		} else {
-			$statement = $constraint->selectStatement;
+			$constraint->selectStatement = new Statements\SelectStatement($query, $constraint->statementTypes);
 		}
+		$statement = $constraint->selectStatement;
 		$statement->bindAndExecute($uniqueValues);
 		
 		if($statement->rows == 1) {
@@ -239,12 +235,9 @@ End;
 				$statementTypes .= $this->columns[$columnName]->statementType;
 			$statementTypes .= $this->primaryKeyConstraint->statementTypes;
 			
-			$statement = new Statements\UpdateStatement($query, $statementTypes);
-			$this->primaryKeyConstraint->updateStatements[$statementIdentifier] = $statement;
-		} else {
-			$statement = $this->primaryKeyConstraint->updateStatements[$statementIdentifier];
+			$this->primaryKeyConstraint->updateStatements[$statementIdentifier] = new Statements\UpdateStatement($query, $statementTypes);
 		}
-		
+		$statement = $this->primaryKeyConstraint->updateStatements[$statementIdentifier];
 		$statement->bindAndExecute(array_merge(array_values($updateValues), $primaryKeyValues));
 		if($statement->rows < 1) {
 			throw new E\NoAffectedRowException("The values you specified for the primary key do not match any row in the table $this->name.");
@@ -257,11 +250,9 @@ End;
 		if(!isset($this->primaryKeyConstraint->deleteStatement)) {
 			$query = 'DELETE FROM '.$this->name.' ';
 			$query .= 'WHERE `'.implode('` = ? AND `', $this->primaryKeyConstraint->columns).'` = ?';
-			$statement = new Statements\DeleteStatement($query, $this->primaryKeyConstraint->statementTypes);
-			$this->primaryKeyConstraint->deleteStatement = $statement;
-		} else {
-			$statement = $this->primaryKeyConstraint->deleteStatement;
+			$this->primaryKeyConstraint->deleteStatement = new Statements\DeleteStatement($query, $this->primaryKeyConstraint->statementTypes);
 		}
+		$statement = $this->primaryKeyConstraint->deleteStatement;
 		$this->bindAndExecute($primaryKeyValues);
 		if($statement->rows < 1)
 			throw new E\NoAffectedRowException("The values you specified for the primary key do not match any row in the table $this->name.");
@@ -275,11 +266,9 @@ End;
 		if(!isset($constraint->existenceStatement)) {
 			$query = 'SELECT NULL FROM '.$this->name.' ';
 			$query .= 'WHERE `'.implode('` = ? AND `', $constraint->columns).'` = ?';
-			$statement = new Statements\SelectStatement($query, $constraint->statementTypes);
-			$constraint->existenceStatement = $statement;
-		} else {
-			$statement = $constraint->existenceStatement;
+			$constraint->existenceStatement = new Statements\SelectStatement($query, $constraint->statementTypes);
 		}
+		$statement = $constraint->existenceStatement;
 		$statement->bindAndExecute($uniqueValues);
 		$numberOfRowsReturned = $statement->rows;
 		$statement->freeResult();

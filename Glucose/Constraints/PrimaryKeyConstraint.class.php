@@ -5,4 +5,12 @@
  */
 namespace Glucose\Constraints;
 class PrimaryKeyConstraint extends UniqueConstraint {
+	
+	public $existenceStatement;
+	
+	public $updateStatements = array();
+	
+	public $refreshStatements = array();
+	
+	public $deleteStatement;
 }

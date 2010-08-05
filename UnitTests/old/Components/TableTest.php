@@ -29,8 +29,7 @@ class TableTest extends TableComparisonTestCase {
 	public function test_P_Select1() {
 		$cities = self::$tables['cities'];
 		$hamburg = $cities->select(array(2), $cities->primaryKeyConstraint);
-		$this->assertEquals('Hamburg', $hamburg->fields['name']->value);
-		$this->assertEquals('20095', $hamburg->fields['postal_code']->value);
+		$this->assertEquals($hamburg, array(3, 6, 'Hamburg', 20253));
 	}
 	
 	public function test_P_Select2() {

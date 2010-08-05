@@ -15,7 +15,7 @@ class ForeignKeyField extends Field {
 	public function __construct(\Glucose\Column $column, \Glucose\EntityEngine $entityEngine, \Glucose\Constraints\ForeignKeyConstraint $constraint) {
 		$this->entityEngine = $entityEngine;
 		$this->className = Inflector::getClassName($constraint->referencedTableName);
-		$this->fieldName = Inflector::getFieldName($className, $constraint->referencedColumnName);
+		$this->fieldName = Inflector::getFieldName($className, $constraint->referencedColumnName($column));
 		$this->constraint = $constraint;
 		parent::__construct($column);
 	}

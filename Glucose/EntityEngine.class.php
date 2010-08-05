@@ -43,13 +43,14 @@ class EntityEngine {
 		
 	}
 	
-	public function constraintValuesChanged(Entity $entity, Constraint\Constraint $column) {
+	public function constraintValuesChanged(Entity $entity, Constraint\Constraint $constraint) {
 		
 	}
 	
 	public function isColliding(array $entityValues) {
 		
 	}
+	
 	
 	public function findModel(array $identifier, Constraints\UniqueConstraint $constraint) {
 		return $this->find($identifier, $constraint, $this->modelEntities);
