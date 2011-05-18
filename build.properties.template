@@ -1,33 +1,42 @@
-# MySQL connection information for the unittests
-mysql.hostname       = localhost
-mysql.port           = 3306
-mysql.username       = phpunit
-mysql.password       = s3f951bq
+[main]
+php.executable  = php
+pear.executable = pear
+srcdir          = ${basedir}/Glucose
+testdir         = ${basedir}/UnitTests
+reportdir       = ${basedir}/Reports
 
-# Internal dirs for this project
-src.dir              = ${basedir}/Glucose
-report.dir           = ${basedir}/Reports
-test.dir             = ${basedir}/UnitTests
-test.jdbcDriver      = ${test.dir}/Database/mysql-connector-java-5.1.10-bin.jar
-
-# Location of outputfiles
-report.coverage.dir  = ${report.dir}/Coverage
-report.agiledoc.file = ${report.dir}/UnitTests.html
-report.loc.file      = ${report.dir}/LinesOfCode.xml
-report.cpd.file      = ${report.dir}/CopyPasteCode.xml
-report.depend.dir    = ${report.dir}/Dependency
-report.profiling.dir = ${report.dir}/Profiling
-
-# Location of inputfiles
-test.sqlscript       = ${test.dir}/Database/model.sql
-
-# Locations of executables
-php                  = php
-phpunit              = phpunit
-phploc               = phploc
-phpcpd               = phpcpd
-phpdep               = pdepend
-
+[ant]
+# SQL input to run before the testing
+test.sqlscript       = ${testdir}/Database/model.sql
 # Name of the schema to use for the unit tests
 test.schema            = model_unit_tests
 test.schema.comparison = model_unit_tests_comparison
+
+[MySQL] # MySQL connection information for both ant and PHP
+mysql.hostname   = localhost
+mysql.port       = 3306
+mysql.username   = phpunit
+mysql.password   = s3cr3t
+mysql.jdbcDriver = ${testdir}/Database/mysql-connector-java-5.1.10-bin.jar
+
+[PHPUnit] # Files and directories for PHPUnit
+phpunit.executable          = phpunit
+phpunit.config              = ${testdir}/phpunit.xml
+phpunit.agiledoc.outputfile = ${reportdir}/UnitTests.html
+phpunit.coverage.outputdir  = ${reportdir}/Coverage
+
+[Documentation]
+phpdoctor.executable = phpdoctor
+phpdoctor.outputdir  = ${reportdir}/API
+phpdoctor.configfile = ${reportdir}/phpdoctor.ini
+
+[CodeMetrics]
+phploc.executable   = phploc
+phploc.outputfile   = ${reportdir}/LinesOfCode.xml
+phpdcd.executable   = phpdcd
+phpdcd.outputfile   = ${reportdir}/DeadCode.txt
+phpcpd.executable   = phpcpd
+phpcpd.outputfile   = ${reportdir}/CopyPasteCode.xml
+pdepend.executable  = pdepend
+pdepend.outputdir   = ${reportdir}/Dependency
+xdebug.profilingdir = ${reportdir}/Profiling
