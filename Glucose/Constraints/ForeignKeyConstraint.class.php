@@ -6,7 +6,17 @@
  *
  */
 namespace Glucose\Constraints;
+use MySQLi_Classes\Statements\SelectStatement;
+use Glucose\ImmutableObjectStorage;
+
 class ForeignKeyConstraint extends Constraint {
 	private $updateRule;
 	private $deleteRule;
+	private $referencedTableName;
+	private $referencedColumnNames;
+	
+	public function __construct($name, $columns) {
+		$this->referencedColumnNames = new ImmutableObjectStorage();
+		$fetchUpdateRulesStatement = new SelectStatement("", $types);
+	}
 }

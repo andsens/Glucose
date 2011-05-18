@@ -3,15 +3,9 @@ namespace Glucose;
 use Glucose\Exceptions\User as E;
 abstract class Model {
 	
-	private static $entityEngines;
-	
-	private $entityEngine;
-	
 	private $inflector;
 	
 	private $entity;
-	
-	protected static $className = 'Model';
 	
 	protected static $compoundConstraintMapping = array();
 	
@@ -22,70 +16,70 @@ abstract class Model {
 	}
 	
 	public function __construct() {
-		if(static::$className != self::$className && static::$className != get_class($this))
-			throw new E\UnexpectedValueException('There is a discrepancy between the actual class name (\''.get_class($this).'\') and the value of $className (\''.static::$className.'\').');
-		if(!isset(self::$entityEngines))
-			self::$entityEngines = array();
-		if(array_key_exists($tableName, self::$entityEngines))
-			self::$entityEngines[$tableName] = new EntityEngine($tableName);
-		$this->entityEngine = self::$entityEngines[$tableName];
-		$this->inflector = $this->entityEngine->inflector;
+		$entityEngine = self::getEntityEngine(get_class($this));
+		$this->inflector = $entityEngine->inflector;
+		
 		$arguments = func_get_args();
 		// Allow subclasses to have a constructor by allowing them to be able to call parent::__construct(func_get_args())
 		if(count($arguments) == 1 && is_array($arguments[0]))
 			$arguments = $arguments[0];
 		if(count($arguments) > 0)
-			$this->entity = $this->entityEngine->getEntityByPrimaryKey($arguments);
+			$this->entity = $entityEngine->getEntityByPrimaryKey($arguments);
 		else
-			$this->entity = $this->entityEngine->newEntity();
+			$this->entity = $entityEngine->newEntity();
 		$this->entity->referenceCount++;
 	}
 	
 	public static function __callStatic($name, $arguments) {
 		if(substr($name, 0, 5) != 'initBy')
 			throw new E\UndefinedMethodException("The method '$name' does not exist.");
-		if(static::$className == self::$className)
-			throw new E\VariableExpectedException('In order to initialize entities by unique identifiers, you will have to add the static variable $className.');
-		$tableName = Inflector::getTableName(static::$className);
-		$entityEngine = self::$entityEngines[$tableName];
-		$constraint = $this->inflector->getConstraint(substr($name, 6));
-		$entity = $this->entityEngine->getEntity($constraint, $arguments);
+		$entityEngine = self::getEntityEngine(get_called_class());
+		$constraint = $entityEngine->inflector->getConstraint(substr($name, 6));
+		$entity = $entityEngine->getEntity($constraint, $arguments);
 		return new static($entity->primaryKey);
 	}
 	
-	
+	private static $entityEngines;
+	private static function getEntityEngine($className) {
+		if(!isset(self::$entityEngines))
+			self::$entityEngines = array();
+		$tableName = Inflector::getTableName($className);
+		if(!array_key_exists($tableName, self::$entityEngines))
+			self::$entityEngines[$tableName] = new EntityEngine($tableName, static::$compoundConstraintMapping);
+		return self::$entityEngines[$tableName];
+	}
 	
 	public function __get($name) {
-		$constraint = $this->getConstraint($name, static::$compoundConstraintMapping);
-		if($constraint !== null)
-			return $entity->getConstraintValues($constraint);
+		$constraint = $this->inflector->getConstraint($name);
+		if($constraint == null)
+			return $this->entity->getColumnValue($this->inflector->getColumn($name));
 		else
-			return $entity->getColumnValue($this->inflector->getColumn($name));
+			return $this->entity->getConstraintValues($constraint);
 	}
 	
 	public function __isset($name) {
-		$constraint = $this->getConstraint($name, static::$compoundConstraintMapping);
-		if($constraint != null)
-			return $entity->constraintValuesAreSet($constraint);
+		$constraint = $this->inflector->getConstraint($name);
+		if($constraint == null)
+			return $this->entity->columnValueIsSet($this->inflector->getColumn($name));
 		else
-			return $entity->columnValueIsSet($this->inflector->getColumn($name));
+			return $this->entity->constraintValuesAreSet($constraint);
 	}
 	
 	public function __set($name, $value) {
-		$constraint = $this->getConstraint($name, static::$compoundConstraintMapping);
-		if($constraint != null)
-			return $entity->setConstraintValues($constraint, $value);
+		$constraint = $this->inflector->getConstraint($name);
+		if($constraint == null)
+			$this->entity->setColumnValue($this->inflector->getColumn($name), $value);
 		else
-			$entity->setColumnValue($this->inflector->getColumn($name), $value);
+			$this->entity->setConstraintValues($constraint, $value);
 	}
 	
 	
 	public function __unset($name) {
-		$constraint = $this->getConstraint($name, static::$compoundConstraintMapping);
-		if($constraint != null)
-			$entity->unsetConstraintValues($constraint);
-		else
+		$constraint = $this->inflector->getConstraint($name);
+		if($constraint == null)
 			$entity->unsetColumnValue($this->inflector->getColumn($name));
+		else
+			$entity->unsetConstraintValues($constraint);
 	}
 	
 	public function __sleep() {
@@ -100,7 +94,17 @@ abstract class Model {
 		
 	}
 	
+	public function __clone() {
+		
+	}
 	
+	public function create() {
+		$this->entity->create();
+	}
+	
+	public function update() {
+		$this->entity->update();
+	}
 	
 	public function delete() {
 		$this->entity->delete();

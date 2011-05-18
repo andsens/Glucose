@@ -90,6 +90,7 @@ class Inflector {
 	}
 	
 	public static function tableize($className) {
+		$className = substr($className, strrpos('\\', $className));
 		return self::pluralize(self::underscore($className));
 	}
 	

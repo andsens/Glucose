@@ -1,0 +1,10 @@
+clean
+coverage
+cpd
+dep
+drop
+help
+loc
+profile
+tables
+test

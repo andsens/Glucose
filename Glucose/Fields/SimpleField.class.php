@@ -26,7 +26,8 @@ class SimpleField implements Field {
 	}
 	
 	public function getTentativeValues(array $currentValues, $tentativeValue) {
-		
+		$currentValues[$this->column->name] = $tentativeValue;
+		return $currentValues;
 	}
 	
 	public function __get($name) {

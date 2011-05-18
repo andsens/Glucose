@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<command>
+	<name>glucose</name>
+	<description>Glucose commandline interface</description>
+<!--	<version>0.0.0</version>-->
+	<command>
+		<name>cache-tables</name>
+		<description>Cache table information of a specific schema.</description>
+		<argument name="schema">
+			<description>The schema name</description>
+			<help_name>schema</help_name>
+			<optional>false</optional>
+		</argument>
+	</command>
+	<option name="verbose">
+		<short_name>-v</short_name>
+		<long_name>--verbose</long_name>
+		<description>Turn on verbose output</description>
+		<action>StoreTrue</action>
+	</option>
+<!-- Replicating the mysql options here -->
+	<option name="username">
+		<short_name>-u</short_name>
+		<long_name>--user</long_name>
+		<description>User for login if not current user.</description>
+	</option>
+	<option name="password">
+		<short_name>-p</short_name>
+		<long_name>--password</long_name>
+		<help_name>[password]</help_name>
+		<description>Password to use when connecting to server. If password is not given it's asked from the tty.</description>
+	</option>
+	<option name="hostname">
+		<short_name>-h</short_name>
+		<long_name>--host</long_name>
+		<description>Hostname used when connecting.</description>
+	</option>
+	<option name="socket">
+		<short_name>-S</short_name>
+		<long_name>--socket</long_name>
+		<description>Socket file to use for connection.</description>
+	</option>
+	<option name="port">
+		<short_name>-P</short_name>
+		<long_name>--port</long_name>
+		<description>Port number to use for connection.</description>
+	</option>
+</command>

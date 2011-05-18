@@ -1,14 +1,17 @@
 <?php
 spl_autoload_register(function($className) {
-	$file = __DIR__.'/../'.str_replace('\\', '/', $className).'.class.php';
-	if(file_exists($file)) {
-		require_once($file);
-		return true;
-	}
-	$file = __DIR__.'/../'.str_replace('\\', '/', $className).'.interface.php';
-	if(file_exists($file)) {
-		require_once($file);
-		return true;
+	$file = str_replace('\\', DIRECTORY_SEPARATOR, $className);
+	$includePaths = explode(PATH_SEPARATOR, get_include_path());
+	foreach($includePaths as $includePath) {
+		$includePath = realpath($includePath);
+		if(file_exists($includePath.DIRECTORY_SEPARATOR.$file.'.class.php')) {
+			require_once($file.'.class.php');
+			return true;
+		}
+		if(file_exists($includePath.DIRECTORY_SEPARATOR.$file.'.interface.php')) {
+			require_once($file.'.interface.php');
+			return true;
+		}
 	}
 	return false;
 });

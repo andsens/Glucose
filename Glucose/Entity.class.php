@@ -1,5 +1,7 @@
 <?php
 namespace Glucose;
+use Glucose\Constraints\ForeignKeyConstraint;
+
 use \Glucose\Exceptions\User as E;
 class Entity {
 	
@@ -34,19 +36,19 @@ class Entity {
 						$fields[$index] = new Fields\ForeignKeyField($column, $this->entityEngine, $constraint);
 				}
 			}
-			if(array_key_exists($index, $fields))
+			if(!array_key_exists($index, $fields))
 				$fields[$index] = new Fields\SimpleField($column);
 		}
 		
 		$this->compoundConstraintFields = array();
 		foreach($constraints as $constraint)
 			if(count($constraint->columns) > 1)
-				if($constraint instanceof Constraints\ForeignKeyConstraint)
-					$this->compoundConstraintFields[$constraint->name] = new Fields\CompoundForeignKeyField($constraintFields[$constraint->name]);
+				if($constraint instanceof ForeignKeyConstraint)
+					$this->compoundConstraintFields[$constraint->name] = new CompoundForeignKeyField($constraintFields[$constraint->name]);
 				else
-					$this->compoundConstraintFields[$constraint->name] = new Fields\CompoundUniqueKeyField($constraintFields[$constraint->name]);
+					$this->compoundConstraintFields[$constraint->name] = new CompoundUniqueKeyField($constraintFields[$constraint->name]);
 		
-		$this->fields = new ImmutableFixedArray($fieldsArray);
+		$this->fields = new ImmutableFixedArray($fields);
 		$this->deleted = false;
 		$this->referenceCount = 0;
 	}
@@ -54,15 +56,15 @@ class Entity {
 	
 	public function getColumnValue(Column $column) {
 		$field = $this->fields[$column->position];
-		return $this->getFieldValue($field);
+		return $this->getValue($field);
 	}
 	
 	public function getConstraintValues(Constraints\Constraint $constraint) {
 		$field = $this->compoundConstraintFields[$constraint->name];
-		return $this->getFieldValue($field);
+		return $this->getValue($field);
 	}
 	
-	private function getFieldValue(Fields\Field $field) {
+	private function getValue(Fields\Field $field) {
 		$this->canAccess();
 		if($field->updateModel)
 			$this->entityEngine->refresh($this);
@@ -81,9 +83,8 @@ class Entity {
 		return $this->valueIsSet($field);
 	}
 	
-	public function valueIsSet(Fields\Field $field) {
+	private function valueIsSet(Fields\Field $field) {
 		$this->canAccess();
-		$field = $this->fields[$column->position];
 		if($field->updateModel)
 			$this->entityEngine->refresh($this);
 		return isset($field->currentValue);
@@ -107,7 +108,7 @@ class Entity {
 		$this->canAccess();
 		if($field->equalsCurrentValue($value))
 			return;
-		$tentativeValues = $field->getTentativeValues($this->simpleModelValues, $value);
+		$tentativeValues = $field->getTentativeValues($this->simpleCurrentValues, $value);
 		if($this->entityEngine->isColliding($tentativeValues))
 			throw new E\EntityCollisionException('Your changes collide with the unique values of an existing entity.');
 		$field->currentValue = $value;
@@ -127,7 +128,7 @@ class Entity {
 		$this->entityEngine->constraintValuesChanged($this, $constraint);
 	}
 	
-	public function unsetValue(Fields\Field $field) {
+	private function unsetValue(Fields\Field $field) {
 		$this->canAccess();
 		// TODO: What if a default value causes a collision?
 		unset($field->currentValue);
@@ -148,12 +149,10 @@ class Entity {
 		switch($name) {
 			case 'primaryKey':
 				return null;
-			case 'simpleCurrentValue':
+			case 'simpleCurrentValues':
 				return array_map(function(Field $field) {return $field->currentValue;}, $this->fields);
 			case 'simpleDBValues':
 				return array_map(function(Field $field) {return $field->dbValue;}, $this->fields);
-			case 'values':
-				return null;
 			case 'referenceCount':
 				return $this->referenceCount;
 		}

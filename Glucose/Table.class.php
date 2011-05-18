@@ -1,5 +1,16 @@
 <?php
 namespace Glucose;
+use MySQLi_Classes\Exceptions\Assertion\TooManyAffectedRowsException;
+
+use MySQLi_Classes\Exceptions\Assertion\TooFewAffectedRowsException;
+
+use MySQLi_Classes\Exceptions\Assertion\TooFewResultingRowsException;
+
+use MySQLi_Classes\Statements\Statement;
+use MySQLi_Classes\Statements\UpdateStatement;
+use MySQLi_Classes\Statements\DeleteStatement;
+use MySQLi_Classes\Statements\SelectStatement;
+use MySQLi_Classes\Statements\InsertStatement;
 use \Glucose\Exceptions\Table as E;
 class Table {
 	
@@ -27,13 +38,16 @@ class Table {
 	private $insertStatements = array();
 	
 	public static function connect(\mysqli $mysqli) {
-		Statements\Statement::connect($mysqli);
+		if($mysqli->server_version < self::REQUIRED_MYSQL_VERSION)
+			throw new ConnectionException('Glucose only works with MySQL version '.self::REQUIRED_MYSQL_VERSION.
+			" or higher, the server you are trying to connect to is version $mysqli->server_version.");
+		Statement::connect($mysqli);
 		self::prepareTableInformationRetrievalStatement();
 	}
 	
 	
 	public function __construct($databaseName, $tableName) {
-		if(Statements\Statement::isConnected())
+		if(Statements\Connector::isConnected())
 			throw new MySQLConnectionException('Glucose is not connected to any server.');
 		
 		$this->databaseName = $databaseName;
@@ -73,7 +87,7 @@ WHERE `columns`.`TABLE_SCHEMA` = ?
 AND `columns`.`TABLE_NAME` = ?
 ORDER BY `columns`.`ORDINAL_POSITION`
 End;
-		self::$tableInformationQuery = new Statements\SelectStatement($query, 'ss');
+		self::$tableInformationQuery = new SelectStatement($query, 'ss');
 	}
 
 	
@@ -137,14 +151,6 @@ End;
 		}
 	}
 	
-	private static function createColumnHash(array $columnNames) {
-		$compoundHash = '';
-		foreach($columnNames as $columnName)
-			$compoundHash .= sha1($columnName);
-		return sha1($compoundHash);
-	}
-	
-	
 	private function insert(array $insertValues) {
 		$insertValuesColumnNames = array_keys($insertValues);
 		
@@ -162,14 +168,14 @@ End;
 					$placeholders[] = "DEFAULT(`$column->name`)";
 				}
 			}
-			$query  = 'INSERT INTO `'.$this->databaseName.'`.`'.$this->tableName.'` ';
-			$query .= '(`'.implode('`, `', $this->columns).'`) ';
+			$query  = 'INSERT INTO '.$this->name;
+			$query .= ' (`'.implode('`, `', $this->columns).'`) ';
 			$query .= 'VALUES ('.implode(',', $placeholders).')';
-			$this->insertStatements[$statementIdentifier] = new Statements\InsertStatement($query, $statementTypes);
+			$this->insertStatements[$statementIdentifier] = new InsertStatement($query, $statementTypes);
 		}
 		$statement = $this->insertStatements[$statementIdentifier];
 		$statement->bindAndExecute(array_values($insertValues));
-		return $statement->insertID > 0;
+		return $statement->insertID;
 	}
 	
 	
@@ -183,14 +189,14 @@ End;
 		
 		if(!isset($constraint->selectStatement)) {
 			$query  = 'SELECT `'.implode('`, `', array_diff($this->columns, $constraint->columns)).'` ';
-			$query .= 'FROM '.$this->name.' ';
-			$query .= 'WHERE `'.implode('` = ? AND `', $constraint->columns).'` = ?';
-			$constraint->selectStatement = new Statements\SelectStatement($query, $constraint->statementTypes);
+			$query .= 'FROM '.$this->name;
+			$query .= ' WHERE `'.implode('` = ? AND `', $constraint->columns).'` = ?';
+			$constraint->selectStatement = new SelectStatement($query, $constraint->statementTypes);
+			$constraint->selectStatement->assertResultingRows = 1;
 		}
 		$statement = $constraint->selectStatement;
-		$statement->bindAndExecute($uniqueValues);
-		
-		if($statement->rows == 1) {
+		try {
+			$statement->bindAndExecute($uniqueValues);
 			$fields = array();
 			$values = array();
 			foreach($this->columns as $index => $column)
@@ -198,16 +204,18 @@ End;
 					$values[$index] = $uniqueValues[$argumentPosition];
 				else
 					$fields[] = &$values[$index];
-			$statement->bindResult($fields);
+			$statement->stmt->bind_result($fields);
 			$statement->fetch();
 			$statement->freeResult();
 			return $values;
-		} elseif($statement->rows < 1) {
+		} catch(TooFewResultingRowsException $e) {
 			$statement->freeResult();
-			throw new E\NoSuchRowException("The values you specified for the constraint '$constraint->name' do not match any row in the table $this->name.");
-		} else {
+			throw new E\NoSuchRowException(
+				"The values you specified for the constraint '$constraint->name' do not match any row in the table $this->name.", null, $e);
+		} catch(TooManyResultingRowsException $e) {
 			$statement->freeResult();
-			throw new E\MultipleRowsReturnedException("The values you specified for the constraint '$constraint->name' match two or more rows in the table $this->name.");
+			throw new E\MultipleRowsReturnedException(
+				"The values you specified for the constraint '$constraint->name' match two or more rows in the table $this->name.", null, $e);
 		}
 	}
 	
@@ -226,8 +234,8 @@ End;
 					$parameters[] = "`$columnName`=DEFAULT";
 				else
 					$parameters[] = "`$columnName`=DEFAULT(`$columnName`)";
-			$query  = 'UPDATE '.$this->name.' ';
-			$query .= 'SET '.implode(',', $parameters);
+			$query  = 'UPDATE '.$this->name;
+			$query .= ' SET '.implode(',', $parameters);
 			$query .= ' WHERE `'.implode('` = ? AND `', $this->primaryKeyConstraint->columns).'` = ?';
 			
 			$statementTypes = "";
@@ -235,14 +243,18 @@ End;
 				$statementTypes .= $this->columns[$columnName]->statementType;
 			$statementTypes .= $this->primaryKeyConstraint->statementTypes;
 			
-			$this->primaryKeyConstraint->updateStatements[$statementIdentifier] = new Statements\UpdateStatement($query, $statementTypes);
+			$this->primaryKeyConstraint->updateStatements[$statementIdentifier] = new UpdateStatement($query, $statementTypes);
+			$this->primaryKeyConstraint->updateStatements[$statementIdentifier]->assertAffectedRows = 1;
 		}
 		$statement = $this->primaryKeyConstraint->updateStatements[$statementIdentifier];
-		$statement->bindAndExecute(array_merge(array_values($updateValues), $primaryKeyValues));
-		if($statement->rows < 1) {
-			throw new E\NoAffectedRowException("The values you specified for the primary key do not match any row in the table $this->name.");
-		} elseif($statement->rows > 1) {
-			throw new E\MultipleRowsAffectedException("The values you specified for the primary key match two or more rows in the table $this->name.");
+		try {
+			$statement->bindAndExecute(array_merge(array_values($updateValues), $primaryKeyValues));
+		} catch(TooFewAffectedRowsException $e) {
+			throw new E\NoAffectedRowException(
+				"The values you specified for the primary key do not match any row in the table $this->name.", null, $e);
+		} catch(TooManyAffectedRowsException $e) {
+			throw new E\MultipleRowsAffectedException(
+				"The values you specified for the primary key match two or more rows in the table $this->name.", null, $e);
 		}
 	}
 	
@@ -250,14 +262,19 @@ End;
 		if(!isset($this->primaryKeyConstraint->deleteStatement)) {
 			$query = 'DELETE FROM '.$this->name.' ';
 			$query .= 'WHERE `'.implode('` = ? AND `', $this->primaryKeyConstraint->columns).'` = ?';
-			$this->primaryKeyConstraint->deleteStatement = new Statements\DeleteStatement($query, $this->primaryKeyConstraint->statementTypes);
+			$this->primaryKeyConstraint->deleteStatement = new DeleteStatement($query, $this->primaryKeyConstraint->statementTypes);
+			$this->primaryKeyConstraint->deleteStatement->assertAffectedRows = 1;
 		}
 		$statement = $this->primaryKeyConstraint->deleteStatement;
-		$this->bindAndExecute($primaryKeyValues);
-		if($statement->rows < 1)
-			throw new E\NoAffectedRowException("The values you specified for the primary key do not match any row in the table $this->name.");
-		elseif($statement->rows > 1)
-			throw new E\MultipleRowsAffectedException("The values you specified for the primary key match two or more rows in the table $this->name.");
+		try {
+			$statement->bindAndExecute($primaryKeyValues);
+		} catch(TooFewAffectedRowsException $e) {
+			throw new E\NoAffectedRowException(
+				"The values you specified for the primary key do not match any row in the table $this->name.", null, $e);
+		} catch(TooManyAffectedRowsException $e) {
+			throw new E\MultipleRowsAffectedException(
+				"The values you specified for the primary key match two or more rows in the table $this->name.", null, $e);
+		}
 	}
 	
 	public function exists(array $uniqueValues, Constraints\UniqueConstraint $constraint) {
@@ -266,7 +283,7 @@ End;
 		if(!isset($constraint->existenceStatement)) {
 			$query = 'SELECT NULL FROM '.$this->name.' ';
 			$query .= 'WHERE `'.implode('` = ? AND `', $constraint->columns).'` = ?';
-			$constraint->existenceStatement = new Statements\SelectStatement($query, $constraint->statementTypes);
+			$constraint->existenceStatement = new SelectStatement($query, $constraint->statementTypes);
 		}
 		$statement = $constraint->existenceStatement;
 		$statement->bindAndExecute($uniqueValues);

@@ -1,6 +1,6 @@
 <?php
 namespace Glucose\Fields;
-class ForeignKeyField extends Field {
+class ForeignKeyField extends SimpleField {
 	
 	private $entityEngine;
 	
