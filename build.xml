@@ -135,14 +135,6 @@
 			DROP SCHEMA IF EXISTS `${test.schema.comparison}`;
 			CREATE SCHEMA `${test.schema.comparison}`;
 		</sql>
-		<replaceregexp file="${test.sqlscript}"
-		               match="USE `model_unit_tests`;"
-		               replace=""
-		               byline="true"/>
-		<replaceregexp file="${test.sqlscript}"
-		               match="insert into \`model_unit_tests\`\."
-		               replace="insert into "
-		               byline="true"/>
 		<parallel>
 			<sql driver="com.mysql.jdbc.Driver"
 			     url="jdbc:mysql://${mysql.hostname}:${mysql.port}/${test.schema}"
