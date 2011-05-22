@@ -1,0 +1,3 @@
+[submodule "MySQLi_Classes"]
+	path = MySQLi_Classes
+	url = git@github.com:andsens/MySQLi_Classes.git
