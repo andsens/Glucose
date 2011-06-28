@@ -4,7 +4,7 @@ use Glucose\Exceptions\User as E;
 class Inflector {
 	
 	private static $classNameMapping;
-	public static function setClassNameMapping(array $classNameMapping) {
+	public static function setClassNameMapping(array $classNameMapping = null) {
 		self::$classNameMapping = $classNameMapping;
 	}
 	
@@ -63,13 +63,13 @@ class Inflector {
 	}
 	
 	public static function getTableName($className) {
-		if(isset(self::$classNameMapping) && array_key_exists($className, self::$classNameMapping))
+		if(self::$classNameMapping != null && array_key_exists($className, self::$classNameMapping))
 			return self::$classNameMapping[$className];
 		return self::tableize($className);
 	}
 	
 	public static function getClassName($tableName) {
-		if(isset(self::$classNameMapping) && false !== $className = array_search($tableName, self::$classNameMapping))
+		if(self::$classNameMapping != null && false !== $className = array_search($tableName, self::$classNameMapping))
 				return $className;
 		return self::classify($tableName);
 	}

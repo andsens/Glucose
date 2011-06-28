@@ -1,5 +1,5 @@
 <?php
 namespace Glucose\Exceptions\Table;
-class NoAffectedRowException extends NonExistentEntityException {
+class NoAffectedRowException extends \RuntimeException implements TableException {
 	
 }

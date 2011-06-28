@@ -11,6 +11,12 @@
 			<help_name>schema</help_name>
 			<optional>false</optional>
 		</argument>
+		<option name="prefix">
+			<short_name>-x</short_name>
+			<long_name>--prefix</long_name>
+			<description>String to prefix the cache tables with.</description>
+			<default>glucose_</default>
+		</option>
 	</command>
 	<option name="verbose">
 		<short_name>-v</short_name>
@@ -19,10 +25,17 @@
 		<action>StoreTrue</action>
 	</option>
 <!-- Replicating the mysql options here -->
+	<option name="hostname">
+		<short_name>-h</short_name>
+		<long_name>--host</long_name>
+		<description>Hostname used when connecting.</description>
+		<default>localhost</default>
+	</option>
 	<option name="username">
 		<short_name>-u</short_name>
 		<long_name>--user</long_name>
 		<description>User for login if not current user.</description>
+		<default>root</default>
 	</option>
 	<option name="password">
 		<short_name>-p</short_name>
@@ -30,19 +43,15 @@
 		<help_name>[password]</help_name>
 		<description>Password to use when connecting to server. If password is not given it's asked from the tty.</description>
 	</option>
-	<option name="hostname">
-		<short_name>-h</short_name>
-		<long_name>--host</long_name>
-		<description>Hostname used when connecting.</description>
+	<option name="port">
+		<short_name>-P</short_name>
+		<long_name>--port</long_name>
+		<description>Port number to use for connection.</description>
+		<default>3306</default>
 	</option>
 	<option name="socket">
 		<short_name>-S</short_name>
 		<long_name>--socket</long_name>
 		<description>Socket file to use for connection.</description>
-	</option>
-	<option name="port">
-		<short_name>-P</short_name>
-		<long_name>--port</long_name>
-		<description>Port number to use for connection.</description>
 	</option>
 </command>

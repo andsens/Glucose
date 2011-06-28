@@ -1,9 +1,11 @@
 <?php
 namespace Glucose;
+use Glucose\Exceptions\Table\MySQLConnectionException;
+
+use MySQLi_Classes\Connector;
+
 use MySQLi_Classes\Exceptions\Assertion\TooManyAffectedRowsException;
-
 use MySQLi_Classes\Exceptions\Assertion\TooFewAffectedRowsException;
-
 use MySQLi_Classes\Exceptions\Assertion\TooFewResultingRowsException;
 
 use MySQLi_Classes\Statements\Statement;
@@ -41,13 +43,13 @@ class Table {
 		if($mysqli->server_version < self::REQUIRED_MYSQL_VERSION)
 			throw new ConnectionException('Glucose only works with MySQL version '.self::REQUIRED_MYSQL_VERSION.
 			" or higher, the server you are trying to connect to is version $mysqli->server_version.");
-		Statement::connect($mysqli);
+		Connector::connect($mysqli);
 		self::prepareTableInformationRetrievalStatement();
 	}
 	
 	
 	public function __construct($databaseName, $tableName) {
-		if(Statements\Connector::isConnected())
+		if(!Connector::isConnected())
 			throw new MySQLConnectionException('Glucose is not connected to any server.');
 		
 		$this->databaseName = $databaseName;
@@ -204,7 +206,7 @@ End;
 					$values[$index] = $uniqueValues[$argumentPosition];
 				else
 					$fields[] = &$values[$index];
-			$statement->stmt->bind_result($fields);
+			$statement->bindResult($fields);
 			$statement->fetch();
 			$statement->freeResult();
 			return $values;
