@@ -1,4 +1,6 @@
 <?php
+require_once 'PHPUnit/Framework.php';
+
 abstract class TableComparisonTestCase extends PHPUnit_Framework_TestCase {
 	
 	private static $columnRetrievalStatement;
