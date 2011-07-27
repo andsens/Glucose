@@ -1,5 +1,7 @@
 <?php
 namespace Glucose;
+use Glucose\Constraints\Constraint;
+
 use Glucose\Constraints\ForeignKeyConstraint;
 
 use \Glucose\Exceptions\User as E;
@@ -48,7 +50,7 @@ class Entity {
 				else
 					$this->compoundConstraintFields[$constraint->name] = new CompoundUniqueKeyField($constraintFields[$constraint->name]);
 		
-		$this->fields = new ImmutableFixedArray($fields);
+		$this->fields = new ImmutableArrayObject($fields);
 		$this->deleted = false;
 		$this->referenceCount = 0;
 	}
@@ -90,21 +92,21 @@ class Entity {
 		return isset($field->currentValue);
 	}
 	
-	
-	
 	public function setColumnValue(Column $column, $value) {
 		$field = $this->fields[$column->position];
 		$this->setValue($field, $value);
-		$this->entityEngine->columnValueChanged($this, $column);
+		$this->entityEngine->columnValuesChanged($this, array($column));
 	}
 	
-	public function setConstraintValues(Constraints\Constraint $constraint, $value) {
+	public function setConstraintValues(Constraints\Constraint $constraint, $values) {
 		$field = $this->compoundConstraintFields[$constraint->name];
-		$this->setValue($field, $value);
-		$this->entityEngine->constraintValuesChanged($this, $constraint);
+		$affectedColumns = $field->getAffectedColumns($values);
+		$this->setValue($field, $values);
+		$this->entityEngine->columnValuesChanged($this, $affectedColumns);
 	}
 	
 	public function setValue(Fields\Field $field, $value) {
+		// TODO: Check if the field actually affects any constraints
 		$this->canAccess();
 		if($field->equalsCurrentValue($value))
 			return;
@@ -125,7 +127,7 @@ class Entity {
 	public function unsetConstraintValues(Constraints\Constraint $constraint) {
 		$field = $this->compoundConstraintFields[$constraint->name];
 		$this->unsetValue($field);
-		$this->entityEngine->constraintValuesChanged($this, $constraint);
+		$this->entityEngine->columnValuesChanged($this, $constraint->columns);
 	}
 	
 	private function unsetValue(Fields\Field $field) {
@@ -139,7 +141,9 @@ class Entity {
 			throw new E\EntityDeletedException('This entity has been deleted. You can no longer access its fields.');
 	}
 	
-	
+	public function getConstraintValues(Constraints\Constraint $constraint) {
+		return $this->compoundConstraintFields[$constraint->name]->currentValues;
+	}
 	
 	public function delete() {
 		$this->deleted = true;

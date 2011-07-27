@@ -1,52 +1,70 @@
 <?php
 namespace Glucose;
+use Glucose\Constraints\ForeignKeyConstraint;
+
 use Glucose\Exceptions\User as E;
 class Inflector {
 	
-	private static $classNameMapping;
-	public static function setClassNameMapping(array $classNameMapping) {
-		self::$classNameMapping = $classNameMapping;
+	private static $classNameMapper;
+	public static function setClassNameMapper(ClassNameMapper $classNameMapper) {
+		self::$classNameMapper = $classNameMapper;
 	}
 	
 	private $modelName;
 	private $tableName;
-	public function __construct($modelName, array $columns, array $constraints) {
+	public function __construct($modelName, array $columns, array $constraints, array $compoundConstraintMapping) {
 		$this->modelName = $modelName;
-		$this->tableName = Inflector::getTableName($this->modelName);
-		foreach($constraints as $constraint) {
-			if(count($constraint->columns) == 1)
-				continue;
-			$fields = array();
-			foreach($constraint->columns as $column)
-				$fields[] =  self::camelize($column->name);
-			$this->constraints[implode('And', $fields)] = $constraint;
-		}
+		$this->tableName = self::getTableName($this->modelName);
+		
 		foreach($columns as $column)
 			$this->columnNames[self::variable($column->name)] = $column;
+		
+		if(count($compoundConstraintMapping) > array_unique($compoundConstraintMapping))
+			throw new E\InvalidMappingException('One constraint can only be mapped to one field.');
+		
+		$this->constraints = array();
+		foreach($constraints as $name => $constraint) {
+			
+			if($fieldName = array_search($name, $compoundConstraintMapping)) {
+				if(count($constraint->columns) < 2)
+					throw new E\InvalidMappingException('You can only map constraints containing two or more columns.');
+				
+				$this->constraints[$fieldName] = $constraint;
+				unset($compoundConstraintMapping[$fieldName]);
+				continue;
+			}
+			
+			if(count($constraint->columns) < 2)
+				continue;
+			
+			$fieldName = self::camelize($constraint->referencedTableName);
+			if($constraint instanceof ForeignKeyConstraint
+			&& !array_key_exists($fieldName, $this->columnNames)) {
+				$this->constraints[$fieldName] = $constraint;
+			}
+			
+			$fields = array();
+			foreach($constraint->columns as $column)
+				$fields[] = self::camelize($column->name);
+			$fieldName = implode('And', $fields);
+			$this->constraints[$fieldName] = $constraint;
+		}
+		if(count($compoundConstraintMapping))
+			throw new E\InvalidMappingException('There were some fields which could not be mapped to a constraint.');
 	}
 	
 	private $constraints;
-	public function getConstraint($fieldName, array $compoundConstraintMapping) {
+	public function getConstraint($fieldName) {
 		if(array_key_exists($fieldName, $this->constraints))
 			return $this->constraints[$fieldName];
-		if(array_key_exists($fieldName, $compoundConstraintMapping)) {
-			foreach($this->constraints as $concatenation => $contraint) {
-				if($constraint->name == $compoundConstraintMapping[$fieldName]) {
-					if(count($constraint->columns) < 2)
-						throw new E\InvalidMappingException('You can only map constraints containing two or more columns.');
-					unset($this->constraints[$concatenation]);
-					return $this->constraints[$fieldName] = $constraint;
-				}
-			}
-			throw new E\UndefinedConstraintException("The constraint '$compoundConstraintMapping[$fieldName]' does not exist.");
-		}
+		return null;
 	}
 	
 	private $columnNames;
 	public function getColumn($fieldName) {
-		if(!array_key_exists($fieldName, $this->columnNames))
-			throw new E\UndefinedFieldException("The field $this->modelName->$fieldName does not exist.");
-		return $this->columnNames[$fieldName];
+		if(array_key_exists($fieldName, $this->columnNames))
+			return $this->columnNames[$fieldName];
+		return null;
 	}
 	
 	public static function getFieldName($className, $columnName) {
@@ -63,15 +81,11 @@ class Inflector {
 	}
 	
 	public static function getTableName($className) {
-		if(isset(self::$classNameMapping) && array_key_exists($className, self::$classNameMapping))
-			return self::$classNameMapping[$className];
-		return self::tableize($className);
+		return self::$classNameMapper->tableize($className)?:self::tableize($className);
 	}
 	
 	public static function getClassName($tableName) {
-		if(isset(self::$classNameMapping) && false !== $className = array_search($tableName, self::$classNameMapping))
-				return $className;
-		return self::classify($tableName);
+		return self::$classNameMapper->classify($tableName)?:self::classify($tableName);
 	}
 	
 	/**

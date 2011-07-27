@@ -12,6 +12,14 @@ use MySQLi_Classes\Statements\DeleteStatement;
 use MySQLi_Classes\Statements\SelectStatement;
 use MySQLi_Classes\Statements\InsertStatement;
 use \Glucose\Exceptions\Table as E;
+
+/**
+ *
+ * Enter description here ...
+ * @author Anders
+ * @property array uniqueConstraints
+ *
+ */
 class Table {
 	
 	const REQUIRED_MYSQL_VERSION = 50136;

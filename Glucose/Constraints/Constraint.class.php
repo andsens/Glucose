@@ -5,8 +5,8 @@
  * @package glucose
  * @subpackage glucose.constraints
  *
- * @property-read array $columns Indexed array of {@link Column columns} which are part of this constraint
- * @property-read string $statementTypes Concatenated string of statement types this constraint consists of
+ * @property array $columns Indexed array of {@link Column columns} which are part of this constraint
+ * @property string $statementTypes Concatenated string of statement types this constraint consists of
  */
 namespace Glucose\Constraints;
 abstract class Constraint {

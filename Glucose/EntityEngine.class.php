@@ -9,6 +9,8 @@ namespace Glucose;
 use \Glucose\Exceptions\Entity as E;
 class EntityEngine {
 	
+	private $table;
+	private $inflector;
 	private $uniqueConstraints;
 	
 	private $modelEntities = array();
@@ -17,8 +19,13 @@ class EntityEngine {
 	private $modelHashes = array();
 	private $dbHashes = array();
 	
-	public function __construct(array $uniqueConstraints) {
-		$this->uniqueConstraints = $uniqueConstraints;
+	
+	public function __construct($className, array $compoundConstraintMapping) {
+		$tableName = Inflector::getTableName($className);
+		$this->table = new Table($databaseName, $tableName);
+		$this->inflector = new Inflector($className, $this->table->columns, $this->table->constraints, $compoundConstraintMapping);
+		
+		$this->uniqueConstraints = $this->table->uniqueConstraints;
 		foreach($this->uniqueConstraints as $constraint) {
 			$this->modelEntities[$constraint->name] = array();
 			$this->dbEntities[$constraint->name] = array();
@@ -39,8 +46,16 @@ class EntityEngine {
 		
 	}
 	
-	public function columnValueChanged(Entity $entity, Column $column) {
-		
+	public function columnValuesChanged(Entity $entity, array $columns) {
+		$affectedConstraints = array();
+		foreach($this->uniqueConstraints as $constraint) {
+			foreach($columns as $column) {
+				if(in_array($column, $constraint->columns)) {
+					$affectedConstraints[] = $constraint;
+					break;
+				}
+			}
+		}
 	}
 	
 	public function constraintValuesChanged(Entity $entity, Constraint\Constraint $constraint) {
@@ -127,7 +142,7 @@ class EntityEngine {
 	}
 	
 	public function dereference(Entity $entity) {
-		foreach($this->uniqueConstraints as $constraintName => $constraint) {
+		foreach($this->table->uniqueConstraints as $constraintName => $constraint) {
 			if($this->modelHashes[$constraintName]->contains($entity)) {
 				$hash = $this->modelHashes[$constraintName][$entity];
 				if($hash !== null)

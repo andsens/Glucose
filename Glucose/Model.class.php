@@ -9,9 +9,10 @@ abstract class Model {
 	
 	protected static $compoundConstraintMapping = array();
 	
-	public static final function connect(\mysqli $mysqli, array $classNameMapping = null) {
+	public static final function connect(\mysqli $mysqli, ClassNameMapper $classNameMapper = null) {
 		// TODO: Has already been connected?
-		Inflector::setClassNameMapping($classNameMapping);
+		$classNameMapper = $classNameMapper?:new ClassNameMapper();
+		Inflector::setClassNameMapper($classNameMapper);
 		Table::connect($mysqli);
 	}
 	
@@ -35,6 +36,8 @@ abstract class Model {
 			throw new E\UndefinedMethodException("The method '$name' does not exist.");
 		$entityEngine = self::getEntityEngine(get_called_class());
 		$constraint = $entityEngine->inflector->getConstraint(substr($name, 6));
+		if($constraint == null)
+			throw new E\UndefinedMethodException("The method '$name' does not exist.");
 		$entity = $entityEngine->getEntity($constraint, $arguments);
 		return new static($entity->primaryKey);
 	}
@@ -43,43 +46,54 @@ abstract class Model {
 	private static function getEntityEngine($className) {
 		if(!isset(self::$entityEngines))
 			self::$entityEngines = array();
-		$tableName = Inflector::getTableName($className);
-		if(!array_key_exists($tableName, self::$entityEngines))
-			self::$entityEngines[$tableName] = new EntityEngine($tableName, static::$compoundConstraintMapping);
-		return self::$entityEngines[$tableName];
+		if(!array_key_exists($className, self::$entityEngines))
+			self::$entityEngines[$className] = new EntityEngine($className, static::$compoundConstraintMapping);
+		return self::$entityEngines[$className];
 	}
 	
 	public function __get($name) {
-		$constraint = $this->inflector->getConstraint($name);
-		if($constraint == null)
-			return $this->entity->getColumnValue($this->inflector->getColumn($name));
-		else
-			return $this->entity->getConstraintValues($constraint);
+		$constraint = $this->inflector->getConstraint(ucfirst($name));
+		if($constraint == null) {
+			$column = $this->inflector->getColumn($name);
+			if($column == null)
+				throw new E\UndefinedFieldException("The field {$this->inflector->modelName}->$name does not exist.");
+			return $this->entity->getColumnValue($column);
+		}
+		return $this->entity->getConstraintValues($constraint);
 	}
 	
 	public function __isset($name) {
-		$constraint = $this->inflector->getConstraint($name);
-		if($constraint == null)
-			return $this->entity->columnValueIsSet($this->inflector->getColumn($name));
-		else
-			return $this->entity->constraintValuesAreSet($constraint);
+		$constraint = $this->inflector->getConstraint(ucfirst($name));
+		if($constraint == null) {
+			$column = $this->inflector->getColumn($name);
+			if($column == null)
+				throw new E\UndefinedFieldException("The field {$this->inflector->modelName}->$name does not exist.");
+			return $this->entity->columnValueIsSet($column);
+		}
+		return $this->entity->constraintValuesAreSet($constraint);
 	}
 	
 	public function __set($name, $value) {
-		$constraint = $this->inflector->getConstraint($name);
-		if($constraint == null)
-			$this->entity->setColumnValue($this->inflector->getColumn($name), $value);
-		else
-			$this->entity->setConstraintValues($constraint, $value);
+		$constraint = $this->inflector->getConstraint(ucfirst($name));
+		if($constraint == null) {
+			$column = $this->inflector->getColumn($name);
+			if($column == null)
+				throw new E\UndefinedFieldException("The field {$this->inflector->modelName}->$name does not exist.");
+			return $this->entity->setColumnValue($column);
+		}
+		return $this->entity->setConstraintValues($constraint);
 	}
 	
 	
 	public function __unset($name) {
-		$constraint = $this->inflector->getConstraint($name);
-		if($constraint == null)
-			$entity->unsetColumnValue($this->inflector->getColumn($name));
-		else
-			$entity->unsetConstraintValues($constraint);
+		$constraint = $this->inflector->getConstraint(ucfirst($name));
+		if($constraint == null) {
+			$column = $this->inflector->getColumn($name);
+			if($column == null)
+				throw new E\UndefinedFieldException("The field {$this->inflector->modelName}->$name does not exist.");
+			return $this->entity->unsetColumnValue($column);
+		}
+		return $this->entity->unsetConstraintValues($constraint);
 	}
 	
 	public function __sleep() {
